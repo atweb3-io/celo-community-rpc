@@ -20,9 +20,9 @@ jobs:
           - network: mainnet
             route: rpc.celo-community.org/*
           - network: baklava
-            route: rpc.baklava.celo-community.org/*
+            route: baklava-rpc.celo-community.org/*
           - network: alfajores
-            route: rpc.alfajores.celo-community.org/*
+            route: alfajores-rpc.celo-community.org/*
     
     steps:
       - name: Checkout code

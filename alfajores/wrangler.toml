@@ -1,7 +1,7 @@
 name = "celo-alfajores-rpc"
 account_id = "$CLOUDFLARE_ACCOUNT_ID"
 workers_dev = false
-route = "rpc.alfajores.celo-community.org/*"
+route = "alfajores-rpc.celo-community.org/*"
 compatibility_date = "2023-01-01"
 main = "index.js"
 

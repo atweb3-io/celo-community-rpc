@@ -87,8 +87,8 @@ export const backendList = [
 For each network, you need to configure DNS records to point to your Cloudflare Workers:
 
 - `rpc.celo-community.org` → Mainnet Worker
-- `rpc.baklava.celo-community.org` → Baklava Worker
-- `rpc.alfajores.celo-community.org` → Alfajores Worker
+- `baklava-rpc.celo-community.org` → Baklava Worker
+- `alfajores-rpc.celo-community.org` → Alfajores Worker
 
 This is handled automatically when using Cloudflare as your DNS provider and setting up the routes in the `wrangler.toml` files.
 
