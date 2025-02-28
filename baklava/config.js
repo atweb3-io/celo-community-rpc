@@ -112,6 +112,9 @@ async function handleSingleRequest(requestBody) {
       // Get the response body
       const responseBody = await response.json();
       
+      // Log which backend was used for this request
+      console.log(`Request ${requestBody.id || 'unknown'} method ${requestBody.method} served by backend: ${target}`);
+      
       // Return the response with CORS headers and backend server info
       return new Response(JSON.stringify(responseBody), {
         headers: {
@@ -208,11 +211,15 @@ async function handleBatchRequest(requests) {
     })
   );
   
+  // Log which backends were used for this batch request
+  const backendsUsed = Array.from(usedBackends);
+  console.log(`Batch request with ${requests.length} operations served by backends: ${backendsUsed.join(', ')}`);
+  
   // Return the batch response with backend server info
   return new Response(JSON.stringify(responses), {
     headers: {
       'Content-Type': 'application/json',
-      'X-Backend-Servers': Array.from(usedBackends).join(', '),
+      'X-Backend-Servers': backendsUsed.join(', '),
       ...getCorsHeaders(),
     },
   });
