@@ -206,8 +206,18 @@ async function updateAllRpcServers() {
     // Query new RPC servers from blockchain
     const blockchainServers = await queryRpcServersFromBlockchain(network);
     
-    // Combine current and blockchain servers
-    const allServers = [...new Set([...currentServers, ...blockchainServers])];
+    // Get default endpoints for this network
+    const defaultEndpoints = DEFAULT_ENDPOINTS[network] || [];
+    
+    // Filter current servers to only keep those that are:
+    // 1. In the blockchain servers list, or
+    // 2. Are default endpoints
+    const filteredServers = currentServers.filter(server =>
+      blockchainServers.includes(server) || defaultEndpoints.includes(server)
+    );
+    
+    // Add any new servers from blockchain that aren't in the filtered list
+    const allServers = [...new Set([...filteredServers, ...blockchainServers])];
     
     // Check health of all servers
     const healthyServers = [];
