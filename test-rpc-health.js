@@ -6,7 +6,7 @@ const RPC_SERVERS = [
   'https://forno.celo.org',
   
   // Baklava
-  'https://baklava-forno.celo-testnet.org',
+  'https://celo-baklava-dev.atweb3.dev',
   
   // Alfajores
   'https://alfajores-forno.celo-testnet.org',
