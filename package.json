@@ -5,7 +5,11 @@
   "main": "update-rpc-servers.js",
   "scripts": {
     "update-rpc": "node update-rpc-servers.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "test:health": "node test-rpc-health.js",
+    "test:celocli": "node test-celocli.js",
+    "test:all": "npm run test:celocli && npm run test:health",
+    "dry-run": "NODE_ENV=test node update-rpc-servers.js"
   },
   "repository": {
     "type": "git",

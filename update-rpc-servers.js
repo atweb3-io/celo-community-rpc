@@ -3,6 +3,12 @@ const fs = require('fs');
 const path = require('path');
 const axios = require('axios');
 
+// Check if running in test/dry-run mode
+const isDryRun = process.env.NODE_ENV === 'test';
+if (isDryRun) {
+  console.log('Running in DRY RUN mode - no files will be modified');
+}
+
 // Networks to update
 const NETWORKS = ['mainnet', 'baklava', 'alfajores'];
 
@@ -150,17 +156,27 @@ export const backendList = [
   ${allServers.map(server => `'${server}'`).join(',\n  ')}
 ];`;
   
-  // Write the file
-  fs.writeFileSync(filePath, fileContent);
-  console.log(`Updated ${filePath} with ${allServers.length} RPC servers`);
+  if (isDryRun) {
+    console.log(`\n[DRY RUN] Would update ${filePath} with ${allServers.length} RPC servers:`);
+    console.log(fileContent);
+  } else {
+    // Write the file
+    fs.writeFileSync(filePath, fileContent);
+    console.log(`Updated ${filePath} with ${allServers.length} RPC servers`);
+  }
 }
 
 /**
  * Save the health history to a file
  */
 function saveHealthHistory() {
-  fs.writeFileSync('health-history.json', JSON.stringify(healthHistory, null, 2));
-  console.log('Saved health history to health-history.json');
+  if (isDryRun) {
+    console.log(`\n[DRY RUN] Would save health history to health-history.json:`);
+    console.log(JSON.stringify(healthHistory, null, 2));
+  } else {
+    fs.writeFileSync('health-history.json', JSON.stringify(healthHistory, null, 2));
+    console.log('Saved health history to health-history.json');
+  }
 }
 
 /**
