@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Celo Community RPC</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>Celo Community RPC</h1>
+            <p class="subtitle">Fast, reliable, and community-maintained RPC endpoints for the Celo blockchain</p>
+        </div>
+    </header>
+
+    <main class="container">
+        <section class="networks">
+            <!-- Mainnet Card -->
+            <div class="network-card">
+                <div class="network-header">
+                    <h2>Mainnet</h2>
+                    <span class="network-badge">Production</span>
+                </div>
+                <div class="rpc-url">
+                    <div class="url-container">
+                        <span class="url">https://rpc.celo-community.org</span>
+                        <button class="copy-btn" data-url="https://rpc.celo-community.org">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                <div class="network-details">
+                    <p>The Celo Mainnet is the production blockchain for the Celo network.</p>
+                    <div class="toggle-container">
+                        <button class="toggle-btn" data-network="mainnet">
+                            <span>Show Backend Servers</span>
+                            <svg class="toggle-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="6 9 12 15 18 9"></polyline>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="backend-servers" id="mainnet-servers" style="display: none;">
+                        <h3>Backend Servers</h3>
+                        <ul class="server-list" id="mainnet-server-list">
+                            <!-- Will be populated by JavaScript -->
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Alfajores Card -->
+            <div class="network-card">
+                <div class="network-header">
+                    <h2>Alfajores</h2>
+                    <span class="network-badge testnet">Testnet</span>
+                </div>
+                <div class="rpc-url">
+                    <div class="url-container">
+                        <span class="url">https://alfajores.rpc.celo-community.org</span>
+                        <button class="copy-btn" data-url="https://alfajores.rpc.celo-community.org">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                <div class="network-details">
+                    <p>Alfajores is a developer-friendly testnet for the Celo network.</p>
+                    <div class="toggle-container">
+                        <button class="toggle-btn" data-network="alfajores">
+                            <span>Show Backend Servers</span>
+                            <svg class="toggle-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="6 9 12 15 18 9"></polyline>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="backend-servers" id="alfajores-servers" style="display: none;">
+                        <h3>Backend Servers</h3>
+                        <ul class="server-list" id="alfajores-server-list">
+                            <!-- Will be populated by JavaScript -->
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Baklava Card -->
+            <div class="network-card">
+                <div class="network-header">
+                    <h2>Baklava</h2>
+                    <span class="network-badge testnet">Testnet</span>
+                </div>
+                <div class="rpc-url">
+                    <div class="url-container">
+                        <span class="url">https://baklava.rpc.celo-community.org</span>
+                        <button class="copy-btn" data-url="https://baklava.rpc.celo-community.org">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                <div class="network-details">
+                    <p>Baklava is a validator-focused testnet for the Celo network.</p>
+                    <div class="toggle-container">
+                        <button class="toggle-btn" data-network="baklava">
+                            <span>Show Backend Servers</span>
+                            <svg class="toggle-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="6 9 12 15 18 9"></polyline>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="backend-servers" id="baklava-servers" style="display: none;">
+                        <h3>Backend Servers</h3>
+                        <ul class="server-list" id="baklava-server-list">
+                            <!-- Will be populated by JavaScript -->
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="usage-section">
+            <h2>How to Use</h2>
+            <div class="usage-examples">
+                <div class="usage-example">
+                    <h3>Web3.js</h3>
+                    <pre><code>const Web3 = require('web3');
+const web3 = new Web3('https://rpc.celo-community.org');</code></pre>
+                </div>
+                <div class="usage-example">
+                    <h3>ethers.js</h3>
+                    <pre><code>const { ethers } = require('ethers');
+const provider = new ethers.providers.JsonRpcProvider('https://rpc.celo-community.org');</code></pre>
+                </div>
+                <div class="usage-example">
+                    <h3>celo-cli</h3>
+                    <pre><code>celocli node:synced --node https://rpc.celo-community.org</code></pre>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>Celo Community RPC is a community-maintained service. <a href="https://github.com/atweb3-io/celo-community-rpc" target="_blank">View on GitHub</a></p>
+        </div>
+    </footer>
+
+    <div class="toast" id="copy-toast">URL copied to clipboard!</div>
+
+    <script src="script.js"></script>
+</body>
+</html>

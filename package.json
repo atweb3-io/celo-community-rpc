@@ -13,7 +13,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/atweb3/celo-community-rpc.git"
+    "url": "git+https://github.com/atweb3-io/celo-community-rpc.git"
   },
   "keywords": [
     "celo",
