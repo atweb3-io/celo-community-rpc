@@ -7,7 +7,5 @@ zone_id = "$CLOUDFLARE_ZONE_ID"
 compatibility_date = "2023-01-01"
 main = "index.js"
 
-=======
-
 [vars]
 ENVIRONMENT = "baklava"
