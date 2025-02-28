@@ -5,11 +5,9 @@ workers_dev = false
 route = "rpc.celo-community.org/*"
 zone_id = "$CLOUDFLARE_ZONE_ID"
 compatibility_date = "2023-01-01"
+main = "index.js"
 
-[build]
-command = "npm run build"
-[build.upload]
-format = "service-worker"
+=======
 
 [vars]
 ENVIRONMENT = "mainnet"

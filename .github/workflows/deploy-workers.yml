@@ -49,4 +49,4 @@ jobs:
           sed -i "s|route = \".*\"|route = \"${{ matrix.route }}\"|g" wrangler.toml
           
           # Deploy the worker
-          wrangler publish
+          wrangler deploy
