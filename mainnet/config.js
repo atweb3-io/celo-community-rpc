@@ -5,6 +5,19 @@ import { backendList } from './rpc-servers.js';
 const REQUEST_TIMEOUT_MS = 30000; // 30 seconds
 const MAX_RETRIES = 2;
 
+// Round-robin index tracker
+let currentBackendIndex = 0;
+
+/**
+ * Get the next backend in round-robin fashion
+ * @returns {string} - The next backend URL
+ */
+function getNextBackend() {
+  const backend = backendList[currentBackendIndex];
+  currentBackendIndex = (currentBackendIndex + 1) % backendList.length;
+  return backend;
+}
+
 /**
  * Handle JSON-RPC requests in a way compatible with Ethereum's geth
  * @param {Request} request - The incoming request
@@ -69,8 +82,8 @@ async function handleSingleRequest(requestBody) {
     );
   }
 
-  // Select a backend using a simple random strategy
-  let target = backendList[Math.floor(Math.random() * backendList.length)];
+  // Select a backend using round-robin strategy
+  let target = getNextBackend();
   
   // Try to forward the request with retries
   let lastError = null;
@@ -157,8 +170,8 @@ async function handleBatchRequest(requests) {
       }
       
       try {
-        // Select a backend using a simple random strategy
-        const target = backendList[Math.floor(Math.random() * backendList.length)];
+        // Select a backend using round-robin strategy
+        const target = getNextBackend();
         // Add to the set of used backends
         usedBackends.add(target);
         
