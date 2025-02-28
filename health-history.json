@@ -1,0 +1,32 @@
+{
+  "https://forno.celo.org": {
+    "consecutiveFailures": 0,
+    "lastChecked": "2025-02-28T21:39:10.990Z",
+    "history": [
+      {
+        "timestamp": "2025-02-28T21:39:10.990Z",
+        "healthy": true
+      }
+    ]
+  },
+  "https://baklava-forno.celo-testnet.org": {
+    "consecutiveFailures": 0,
+    "lastChecked": "2025-02-28T21:39:13.448Z",
+    "history": [
+      {
+        "timestamp": "2025-02-28T21:39:13.448Z",
+        "healthy": true
+      }
+    ]
+  },
+  "https://alfajores-forno.celo-testnet.org": {
+    "consecutiveFailures": 0,
+    "lastChecked": "2025-02-28T21:39:15.924Z",
+    "history": [
+      {
+        "timestamp": "2025-02-28T21:39:15.924Z",
+        "healthy": true
+      }
+    ]
+  }
+}
