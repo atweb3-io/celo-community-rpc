@@ -150,7 +150,6 @@ function updateRpcServersFile(network, servers) {
   // Create the file content
   const fileContent = `// ${network.charAt(0).toUpperCase() + network.slice(1)} ${network === 'mainnet' ? '' : 'testnet '}RPC server list
 // This file can be updated by "celocli network:rpc-urls" to fetch registered RPC servers and check their health
-// Last updated: ${new Date().toISOString()}
 
 export const backendList = [
   ${allServers.map(server => `'${server}'`).join(',\n  ')}
