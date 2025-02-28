@@ -18,11 +18,11 @@ jobs:
         network: [mainnet, baklava, alfajores]
         include:
           - network: mainnet
-            route: rpc.mainnet.celo.org/*
+            route: rpc.celo-community.org/*
           - network: baklava
-            route: rpc.baklava.celo.org/*
+            route: rpc.baklava.celo-community.org/*
           - network: alfajores
-            route: rpc.alfajores.celo.org/*
+            route: rpc.alfajores.celo-community.org/*
     
     steps:
       - name: Checkout code
