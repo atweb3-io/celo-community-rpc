@@ -7,3 +7,7 @@ main = "index.js"
 
 [vars]
 ENVIRONMENT = "mainnet"
+
+[observability]
+enabled = true
+head_sampling_rate = 1 # optional. default = 1.

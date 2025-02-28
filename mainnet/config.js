@@ -99,10 +99,11 @@ async function handleSingleRequest(requestBody) {
       // Get the response body
       const responseBody = await response.json();
       
-      // Return the response with CORS headers
+      // Return the response with CORS headers and backend server info
       return new Response(JSON.stringify(responseBody), {
         headers: {
           'Content-Type': 'application/json',
+          'X-Backend-Server': target,
           ...getCorsHeaders(),
         },
       });
@@ -137,6 +138,9 @@ async function handleBatchRequest(requests) {
     return jsonRpcError(null, -32600, 'Invalid Request: Empty batch', 400);
   }
   
+  // Track which backends were used
+  const usedBackends = new Set();
+  
   // Process each request in the batch
   const responses = await Promise.all(
     requests.map(async (request) => {
@@ -155,6 +159,8 @@ async function handleBatchRequest(requests) {
       try {
         // Select a backend using a simple random strategy
         const target = backendList[Math.floor(Math.random() * backendList.length)];
+        // Add to the set of used backends
+        usedBackends.add(target);
         
         // Forward the request to the selected Celo mainnet RPC endpoint
         const controller = new AbortController();
@@ -189,10 +195,11 @@ async function handleBatchRequest(requests) {
     })
   );
   
-  // Return the batch response
+  // Return the batch response with backend server info
   return new Response(JSON.stringify(responses), {
     headers: {
       'Content-Type': 'application/json',
+      'X-Backend-Servers': Array.from(usedBackends).join(', '),
       ...getCorsHeaders(),
     },
   });
