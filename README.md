@@ -72,12 +72,22 @@ To deploy the workers, you need to set up the following GitHub secrets:
 2. `CLOUDFLARE_ACCOUNT_ID`: Your Cloudflare account ID
 3. `CLOUDFLARE_ZONE_ID`: The zone ID for your domain
 
+For the automatic RPC server updates workflow, you also need:
+
+4. `GH_PAT`: A GitHub Personal Access Token with `repo` scope (for creating pull requests)
+
 To set up these secrets:
 
 1. Go to your GitHub repository
 2. Click on "Settings" > "Secrets and variables" > "Actions"
 3. Click on "New repository secret"
 4. Add each of the required secrets
+
+For the GH_PAT:
+1. Go to your GitHub account settings
+2. Navigate to Developer settings > Personal access tokens > Fine-grained tokens (or Classic tokens)
+3. Create a new token with `repo` scope permissions
+4. Copy the generated token and add it as a repository secret named `GH_PAT`
 
 ### Manual Deployment
 
@@ -152,8 +162,10 @@ A GitHub Actions workflow (`update-rpc-servers.yml`) runs the script daily and c
 
 1. The workflow runs at midnight UTC every day
 2. It can also be triggered manually from the Actions tab
-3. It creates a pull request with the updated RPC server lists
+3. It creates a pull request with the updated RPC server lists (requires the `GH_PAT` secret)
 4. The pull request can be reviewed and merged by a maintainer
+
+> **Note:** The workflow requires a GitHub Personal Access Token (stored as `GH_PAT` secret) to create pull requests, as the default `GITHUB_TOKEN` may have limited permissions depending on repository settings.
 
 ### Running the Update Script Manually
 

@@ -20,12 +20,22 @@ The `act` tool allows you to run GitHub Actions workflows locally using Docker.
 
 ### Running the workflow
 
-1. From the root of the repository, run:
+1. If you want to test the pull request creation step, you'll need to provide a GitHub Personal Access Token:
    ```bash
-   act -j update-rpc-servers
+   # Create a .secrets file (git-ignored)
+   echo "GH_PAT=your_personal_access_token" > .secrets
    ```
 
-2. This will execute the entire workflow locally, including:
+2. From the root of the repository, run:
+   ```bash
+   # Without secrets
+   act -j update-rpc-servers
+   
+   # Or with secrets
+   act -j update-rpc-servers --secret-file .secrets
+   ```
+
+3. This will execute the entire workflow locally, including:
    - Setting up Node.js
    - Installing dependencies
    - Running the update-rpc-servers.js script
@@ -36,6 +46,7 @@ The `act` tool allows you to run GitHub Actions workflows locally using Docker.
 - `act` uses Docker to simulate the GitHub Actions environment
 - Some actions might not work exactly the same as on GitHub
 - The pull request creation step will be simulated but not actually create a PR
+- For full functionality with the peter-evans/create-pull-request action, you need to provide a GH_PAT
 
 ## Option 2: Manual Testing
 
