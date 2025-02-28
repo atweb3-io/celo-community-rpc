@@ -1,12 +1,15 @@
 name = "celo-alfajores-rpc"
 type = "javascript"
-account_id = "your-account-id"
-workers_dev = true
-route = ""
-zone_id = ""
+account_id = "$CLOUDFLARE_ACCOUNT_ID"
+workers_dev = false
+route = "rpc.alfajores.celo.org/*"
+zone_id = "$CLOUDFLARE_ZONE_ID"
 compatibility_date = "2023-01-01"
 
 [build]
 command = "npm run build"
 [build.upload]
 format = "service-worker"
+
+[vars]
+ENVIRONMENT = "alfajores"
