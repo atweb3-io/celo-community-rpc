@@ -73,7 +73,7 @@ async function handleSingleRequest(requestBody) {
   }
 
   // Select a backend using a simple random strategy
-  const target = backendList[Math.floor(Math.random() * backendList.length)];
+  let target = backendList[Math.floor(Math.random() * backendList.length)];
   
   // Try to forward the request with retries
   let lastError = null;
