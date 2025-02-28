@@ -1,0 +1,53 @@
+name: Deploy Cloudflare Workers
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'mainnet/**'
+      - 'baklava/**'
+      - 'alfajores/**'
+      - '.github/workflows/deploy-workers.yml'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        network: [mainnet, baklava, alfajores]
+        include:
+          - network: mainnet
+            route: rpc.mainnet.celo.org/*
+          - network: baklava
+            route: rpc.baklava.celo.org/*
+          - network: alfajores
+            route: rpc.alfajores.celo.org/*
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm install -g wrangler
+
+      - name: Deploy Worker for ${{ matrix.network }}
+        working-directory: ${{ matrix.network }}
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_ZONE_ID: ${{ secrets.CLOUDFLARE_ZONE_ID }}
+        run: |
+          # Replace environment variables in wrangler.toml
+          sed -i "s/\$CLOUDFLARE_ACCOUNT_ID/${{ secrets.CLOUDFLARE_ACCOUNT_ID }}/g" wrangler.toml
+          sed -i "s/\$CLOUDFLARE_ZONE_ID/${{ secrets.CLOUDFLARE_ZONE_ID }}/g" wrangler.toml
+          sed -i "s|route = \".*\"|route = \"${{ matrix.route }}\"|g" wrangler.toml
+          
+          # Deploy the worker
+          wrangler publish
