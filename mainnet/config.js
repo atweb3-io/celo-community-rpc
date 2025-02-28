@@ -1,8 +1,5 @@
 // Mainnet configuration
-export const backendList = [
-  'https://forno.celo.org',
-  // Add additional mainnet RPC endpoints here
-];
+import { backendList } from './rpc-servers.js';
 
 // Constants
 const REQUEST_TIMEOUT_MS = 30000; // 30 seconds

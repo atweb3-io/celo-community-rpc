@@ -1,8 +1,5 @@
 // Alfajores testnet configuration
-export const backendList = [
-  'https://alfajores-forno.celo-testnet.org',
-  // Add additional alfajores testnet RPC endpoints here
-];
+import { backendList } from './rpc-servers.js';
 
 // Constants
 const REQUEST_TIMEOUT_MS = 30000; // 30 seconds

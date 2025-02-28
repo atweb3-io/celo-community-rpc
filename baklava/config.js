@@ -1,8 +1,5 @@
 // Baklava testnet configuration
-export const backendList = [
-  'https://baklava-forno.celo-testnet.org',
-  // Add additional baklava testnet RPC endpoints here
-];
+import { backendList } from './rpc-servers.js';
 
 // Constants
 const REQUEST_TIMEOUT_MS = 30000; // 30 seconds
