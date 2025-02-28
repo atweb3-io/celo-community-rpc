@@ -15,7 +15,7 @@ const NETWORKS = ['mainnet', 'baklava', 'alfajores'];
 // Default RPC endpoints that should always be included
 const DEFAULT_ENDPOINTS = {
   'mainnet': ['https://forno.celo.org'],
-  'baklava': ['https://celo-baklava-dev.atweb3.dev'],
+  'baklava': ['https://celo-baklava-dev.atweb3.dev', 'https://baklava-forno.celo-testnet.org'],
   'alfajores': ['https://alfajores-forno.celo-testnet.org']
 };
 

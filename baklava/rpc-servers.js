@@ -3,5 +3,6 @@
 // Last updated: 2025-02-28T22:22:36.373Z
 
 export const backendList = [
-  'https://celo-baklava-dev.atweb3.dev'
+  'https://celo-baklava-dev.atweb3.dev',
+  'https://baklava-forno.celo-testnet.org'
 ];
