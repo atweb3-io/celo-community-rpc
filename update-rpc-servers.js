@@ -139,6 +139,7 @@ function updateHealthHistory(url, isHealthy) {
  * Update the RPC servers file for a network
  * @param {string} network - The network to update
  * @param {string[]} servers - The list of healthy RPC servers
+ * @returns {string[]} - The list of all servers (including default endpoints)
  */
 function updateRpcServersFile(network, servers) {
   const filePath = path.join(__dirname, network, 'rpc-servers.js');
@@ -163,6 +164,8 @@ export const backendList = [
     fs.writeFileSync(filePath, fileContent);
     console.log(`Updated ${filePath} with ${allServers.length} RPC servers`);
   }
+  
+  return allServers;
 }
 
 /**
@@ -179,9 +182,68 @@ function saveHealthHistory() {
 }
 
 /**
+ * Update the website's script.js file with the latest RPC servers
+ * @param {Object} networkServers - Object containing server lists for each network
+ */
+function updateWebsiteScript(networkServers) {
+  const scriptPath = path.join(__dirname, 'public', 'script.js');
+  
+  try {
+    // Read the current script.js file
+    let scriptContent = fs.readFileSync(scriptPath, 'utf8');
+    
+    // Find the networks object in the script
+    const networksRegex = /(const\s+networks\s*=\s*\{[\s\S]*?\};)/;
+    const match = scriptContent.match(networksRegex);
+    
+    if (match) {
+      // Create the new networks object
+      const newNetworksObject = `const networks = {
+        mainnet: {
+            name: 'Mainnet',
+            servers: [
+                ${networkServers.mainnet.map(server => `'${server}'`).join(',\n                ')}
+            ]
+        },
+        alfajores: {
+            name: 'Alfajores',
+            servers: [
+                ${networkServers.alfajores.map(server => `'${server}'`).join(',\n                ')}
+            ]
+        },
+        baklava: {
+            name: 'Baklava',
+            servers: [
+                ${networkServers.baklava.map(server => `'${server}'`).join(',\n                ')}
+            ]
+        }
+    };`;
+      
+      // Replace the old networks object with the new one
+      const updatedContent = scriptContent.replace(networksRegex, newNetworksObject);
+      
+      if (isDryRun) {
+        console.log(`\n[DRY RUN] Would update ${scriptPath} with latest RPC servers`);
+      } else {
+        // Write the updated script.js file
+        fs.writeFileSync(scriptPath, updatedContent);
+        console.log(`Updated ${scriptPath} with latest RPC servers`);
+      }
+    } else {
+      console.error('Could not find networks object in script.js');
+    }
+  } catch (error) {
+    console.error('Error updating website script:', error.message);
+  }
+}
+
+/**
  * Main function to update RPC servers for all networks
  */
 async function updateAllRpcServers() {
+  // Object to store all network servers
+  const networkServers = {};
+  
   for (const network of NETWORKS) {
     console.log(`\nProcessing ${network}...`);
     
@@ -229,12 +291,21 @@ async function updateAllRpcServers() {
       }
     }
     
-    // Update the RPC servers file
-    updateRpcServersFile(network, healthyServers);
+    // Update the RPC servers file and store the servers for website update
+    networkServers[network] = updateRpcServersFile(network, healthyServers);
   }
   
   // Save health history
   saveHealthHistory();
+  
+  // Check if public folder and script.js exist
+  const scriptPath = path.join(__dirname, 'public', 'script.js');
+  if (fs.existsSync(scriptPath)) {
+    // Update the website script with the latest RPC servers
+    updateWebsiteScript(networkServers);
+  } else {
+    console.log(`Website script not found at ${scriptPath}, skipping website update`);
+  }
 }
 
 // Run the update
