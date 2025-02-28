@@ -1,9 +1,7 @@
 name = "celo-baklava-rpc"
-type = "javascript"
 account_id = "$CLOUDFLARE_ACCOUNT_ID"
 workers_dev = false
 route = "rpc.baklava.celo-community.org/*"
-zone_id = "$CLOUDFLARE_ZONE_ID"
 compatibility_date = "2023-01-01"
 main = "index.js"
 
