@@ -47,3 +47,5 @@ jobs:
             Updated on: ${{ github.event.repository.updated_at }}
           branch: update-rpc-servers
           delete-branch: true
+          add-paths: |
+            */rpc-servers.js
