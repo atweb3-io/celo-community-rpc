@@ -1,0 +1,26 @@
+{
+  "name": "celo-community-rpc",
+  "version": "1.0.0",
+  "description": "Cloudflare Workers that serve as reverse proxies for Celo blockchain RPC endpoints",
+  "main": "update-rpc-servers.js",
+  "scripts": {
+    "update-rpc": "node update-rpc-servers.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/atweb3/celo-community-rpc.git"
+  },
+  "keywords": [
+    "celo",
+    "rpc",
+    "blockchain",
+    "cloudflare",
+    "worker"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "axios": "^1.6.0"
+  }
+}

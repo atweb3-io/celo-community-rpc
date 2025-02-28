@@ -24,21 +24,27 @@ The repository is organized by network, with each network having its own directo
 
 ```
 celo-community-rpc/
-├── mainnet/           # Mainnet RPC proxy
-│   ├── config.js      # Main request handling logic
-│   ├── index.js       # Worker entry point
-│   ├── rpc-servers.js # RPC endpoint configuration
-│   └── wrangler.toml  # Cloudflare Worker configuration
-├── baklava/           # Baklava testnet RPC proxy
+├── .github/
+│   └── workflows/
+│       ├── deploy-workers.yml     # Workflow for deploying workers
+│       └── update-rpc-servers.yml # Workflow for updating RPC servers
+├── mainnet/                       # Mainnet RPC proxy
+│   ├── config.js                  # Main request handling logic
+│   ├── index.js                   # Worker entry point
+│   ├── rpc-servers.js             # RPC endpoint configuration
+│   └── wrangler.toml              # Cloudflare Worker configuration
+├── baklava/                       # Baklava testnet RPC proxy
 │   ├── config.js
 │   ├── index.js
 │   ├── rpc-servers.js
 │   └── wrangler.toml
-└── alfajores/         # Alfajores testnet RPC proxy
-    ├── config.js
-    ├── index.js
-    ├── rpc-servers.js
-    └── wrangler.toml
+├── alfajores/                     # Alfajores testnet RPC proxy
+│   ├── config.js
+│   ├── index.js
+│   ├── rpc-servers.js
+│   └── wrangler.toml
+├── update-rpc-servers.js          # Script to update RPC servers
+└── package.json                   # Project dependencies
 ```
 
 ## Configuration
@@ -109,7 +115,7 @@ export const backendList = [
 ];
 ```
 
-The `rpc-servers.js` file can also be updated automatically using the "celcli call" command to fetch registered RPC servers and check their health.
+The `rpc-servers.js` file can also be updated automatically using the automated process described in the "Automatic RPC Server Updates" section below.
 
 ## Response Headers
 
@@ -126,6 +132,47 @@ Content-Type: application/json
 X-Backend-Server: https://forno.celo.org
 Access-Control-Allow-Origin: *
 ```
+
+## Automatic RPC Server Updates
+
+This repository includes an automated system to keep the RPC server lists up-to-date by querying the blockchain for registered community RPC servers and performing health checks.
+
+### How It Works
+
+The `update-rpc-servers.js` script:
+
+1. Queries the blockchain using `celocli network:rpc-urls --node <network>` to get registered RPC servers
+2. Performs health checks on all RPC servers (existing and new)
+3. Updates the appropriate `rpc-servers.js` files with healthy servers
+4. Maintains a history of health checks to avoid removing servers that might be temporarily unavailable
+
+### Automatic Updates via GitHub Actions
+
+A GitHub Actions workflow (`update-rpc-servers.yml`) runs the script daily and creates a pull request with any changes:
+
+1. The workflow runs at midnight UTC every day
+2. It can also be triggered manually from the Actions tab
+3. It creates a pull request with the updated RPC server lists
+4. The pull request can be reviewed and merged by a maintainer
+
+### Running the Update Script Manually
+
+You can also run the update script manually:
+
+1. Install dependencies:
+   ```bash
+   npm install
+   ```
+
+2. Install celocli:
+   ```bash
+   npm install -g @celo/celocli
+   ```
+
+3. Run the script:
+   ```bash
+   node update-rpc-servers.js
+   ```
 
 ## DNS Configuration
 
