@@ -17,7 +17,7 @@ alfajores-rpc.celo-community.org
 
 ## Website
 
-This repository includes a modern, responsive website that provides information about the Celo Community RPC service. The website is deployed using GitHub Pages and can be accessed at: https://atweb3.github.io/celo-community-rpc/
+This repository includes a modern, responsive website that provides information about the Celo Community RPC service. The website is deployed using GitHub Pages and can be accessed at: https://celo-community.org
 
 ### Features
 
