@@ -63,7 +63,7 @@ Each network directory contains the following files:
 - `rpc-servers.js`: Contains the list of backend RPC endpoints. This file can be updated by "celcli call" to fetch registered RPC servers and check their health.
 - `wrangler.toml`: Cloudflare Worker configuration file.
 
-The worker randomly selects one of the endpoints from the `backendList` for each request, providing load balancing and failover capabilities. If a request fails, the worker will retry with a different endpoint.
+The worker uses a round-robin strategy to select endpoints from the `backendList` for each request, providing load balancing and failover capabilities. If a request fails, the worker will retry with a different endpoint.
 
 ## Deployment
 
@@ -149,6 +149,23 @@ Content-Type: application/json
 X-Backend-Server: https://forno.celo.org
 Access-Control-Allow-Origin: *
 ```
+
+## Request Failure Handling
+
+The RPC proxy implements different strategies for handling request failures depending on whether it's a single request or a batch request:
+
+### For Single Requests:
+
+- The system implements a retry mechanism with up to 2 retries
+- If a request fails, it selects a different backend from the `backendList` using round-robin selection
+- It tries the request again with the new backend
+- If all retries fail, it returns a JSON-RPC error response
+
+### For Batch Requests:
+
+- Each request in the batch is processed independently
+- There is no retry mechanism for individual requests within a batch
+- Failed requests return error responses within the batch, while other requests may still succeed
 
 ## Automatic RPC Server Updates
 
