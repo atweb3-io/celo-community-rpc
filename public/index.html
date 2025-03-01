@@ -19,116 +19,162 @@
     </header>
 
     <main class="container">
-        <section class="networks">
-            <!-- Mainnet Card -->
-            <div class="network-card">
-                <div class="network-header">
-                    <h2>Mainnet</h2>
-                    <span class="network-badge">Production</span>
-                </div>
-                <div class="rpc-url">
-                    <div class="url-container">
-                        <span class="url">https://rpc.celo-community.org</span>
-                        <button class="copy-btn" data-url="https://rpc.celo-community.org">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                            </svg>
-                        </button>
+        <section class="networks-container">
+            <div class="networks">
+                <!-- Mainnet Card -->
+                <div class="network-card" data-network="mainnet">
+                    <div class="network-header">
+                        <h2>Mainnet</h2>
+                        <span class="network-badge">Production</span>
+                    </div>
+                    <div class="rpc-url">
+                        <div class="url-container">
+                            <span class="url">https://rpc.celo-community.org</span>
+                            <button class="copy-btn" data-url="https://rpc.celo-community.org">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="network-details">
+                        <p>The Celo Mainnet is the production blockchain for the Celo network.</p>
+                        <div class="toggle-container">
+                            <button class="toggle-btn" data-network="mainnet">
+                                <span>Show Backend Servers</span>
+                                <svg class="toggle-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="6 9 12 15 18 9"></polyline>
+                                </svg>
+                            </button>
+                        </div>
                     </div>
                 </div>
-                <div class="network-details">
-                    <p>The Celo Mainnet is the production blockchain for the Celo network.</p>
-                    <div class="toggle-container">
-                        <button class="toggle-btn" data-network="mainnet">
-                            <span>Show Backend Servers</span>
-                            <svg class="toggle-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <polyline points="6 9 12 15 18 9"></polyline>
-                            </svg>
-                        </button>
+
+                <!-- Alfajores Card -->
+                <div class="network-card" data-network="alfajores">
+                    <div class="network-header">
+                        <h2>Alfajores</h2>
+                        <span class="network-badge testnet">Testnet</span>
                     </div>
-                    <div class="backend-servers" id="mainnet-servers" style="display: none;">
-                        <h3>Backend Servers</h3>
-                        <ul class="server-list" id="mainnet-server-list">
-                            <!-- Will be populated by JavaScript -->
-                        </ul>
+                    <div class="rpc-url">
+                        <div class="url-container">
+                            <span class="url">https://alfajores-rpc.celo-community.org</span>
+                            <button class="copy-btn" data-url="https://alfajores-rpc.celo-community.org">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="network-details">
+                        <p>Alfajores is a developer-friendly testnet for the Celo network.</p>
+                        <div class="toggle-container">
+                            <button class="toggle-btn" data-network="alfajores">
+                                <span>Show Backend Servers</span>
+                                <svg class="toggle-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="6 9 12 15 18 9"></polyline>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Baklava Card -->
+                <div class="network-card" data-network="baklava">
+                    <div class="network-header">
+                        <h2>Baklava</h2>
+                        <span class="network-badge testnet">Testnet</span>
+                    </div>
+                    <div class="rpc-url">
+                        <div class="url-container">
+                            <span class="url">https://baklava-rpc.celo-community.org</span>
+                            <button class="copy-btn" data-url="https://baklava-rpc.celo-community.org">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="network-details">
+                        <p>Baklava is a validator-focused testnet for the Celo network.</p>
+                        <div class="toggle-container">
+                            <button class="toggle-btn" data-network="baklava">
+                                <span>Show Backend Servers</span>
+                                <svg class="toggle-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="6 9 12 15 18 9"></polyline>
+                                </svg>
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Alfajores Card -->
-            <div class="network-card">
-                <div class="network-header">
-                    <h2>Alfajores</h2>
-                    <span class="network-badge testnet">Testnet</span>
-                </div>
-                <div class="rpc-url">
-                    <div class="url-container">
-                        <span class="url">https://alfajores-rpc.celo-community.org</span>
-                        <button class="copy-btn" data-url="https://alfajores-rpc.celo-community.org">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                            </svg>
-                        </button>
+            <!-- Backend Server Cards -->
+            <div class="backend-servers-container">
+                <!-- Mainnet Backend Servers -->
+                <div class="backend-servers-card" id="mainnet-servers" style="display: none;">
+                    <h3>Mainnet RPC URL List</h3>
+                    <div class="server-table-container">
+                        <table class="server-table">
+                            <thead>
+                                <tr>
+                                    <th>RPC Server Address</th>
+                                    <th>Latency</th>
+                                    <th>Status</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody id="mainnet-server-list">
+                                <!-- Will be populated by JavaScript -->
+                            </tbody>
+                        </table>
                     </div>
                 </div>
-                <div class="network-details">
-                    <p>Alfajores is a developer-friendly testnet for the Celo network.</p>
-                    <div class="toggle-container">
-                        <button class="toggle-btn" data-network="alfajores">
-                            <span>Show Backend Servers</span>
-                            <svg class="toggle-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <polyline points="6 9 12 15 18 9"></polyline>
-                            </svg>
-                        </button>
-                    </div>
-                    <div class="backend-servers" id="alfajores-servers" style="display: none;">
-                        <h3>Backend Servers</h3>
-                        <ul class="server-list" id="alfajores-server-list">
-                            <!-- Will be populated by JavaScript -->
-                        </ul>
-                    </div>
-                </div>
-            </div>
 
-            <!-- Baklava Card -->
-            <div class="network-card">
-                <div class="network-header">
-                    <h2>Baklava</h2>
-                    <span class="network-badge testnet">Testnet</span>
-                </div>
-                <div class="rpc-url">
-                    <div class="url-container">
-                        <span class="url">https://baklava-rpc.celo-community.org</span>
-                        <button class="copy-btn" data-url="https://baklava-rpc.celo-community.org">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                            </svg>
-                        </button>
+                <!-- Alfajores Backend Servers -->
+                <div class="backend-servers-card" id="alfajores-servers" style="display: none;">
+                    <h3>Alfajores RPC URL List</h3>
+                    <div class="server-table-container">
+                        <table class="server-table">
+                            <thead>
+                                <tr>
+                                    <th>RPC Server Address</th>
+                                    <th>Latency</th>
+                                    <th>Status</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody id="alfajores-server-list">
+                                <!-- Will be populated by JavaScript -->
+                            </tbody>
+                        </table>
                     </div>
                 </div>
-                <div class="network-details">
-                    <p>Baklava is a validator-focused testnet for the Celo network.</p>
-                    <div class="toggle-container">
-                        <button class="toggle-btn" data-network="baklava">
-                            <span>Show Backend Servers</span>
-                            <svg class="toggle-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <polyline points="6 9 12 15 18 9"></polyline>
-                            </svg>
-                        </button>
-                    </div>
-                    <div class="backend-servers" id="baklava-servers" style="display: none;">
-                        <h3>Backend Servers</h3>
-                        <ul class="server-list" id="baklava-server-list">
-                            <!-- Will be populated by JavaScript -->
-                        </ul>
+
+                <!-- Baklava Backend Servers -->
+                <div class="backend-servers-card" id="baklava-servers" style="display: none;">
+                    <h3>Baklava RPC URL List</h3>
+                    <div class="server-table-container">
+                        <table class="server-table">
+                            <thead>
+                                <tr>
+                                    <th>RPC Server Address</th>
+                                    <th>Latency</th>
+                                    <th>Status</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody id="baklava-server-list">
+                                <!-- Will be populated by JavaScript -->
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
         </section>
-
     </main>
 
     <footer>

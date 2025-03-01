@@ -111,12 +111,19 @@ header {
     margin: 0 auto;
 }
 
+/* Networks container */
+.networks-container {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-lg);
+    margin-bottom: var(--spacing-xxl);
+}
+
 /* Network cards */
 .networks {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
     gap: var(--spacing-lg);
-    margin-bottom: var(--spacing-xxl);
 }
 
 .network-card {
@@ -125,11 +132,35 @@ header {
     box-shadow: var(--shadow-md);
     overflow: hidden;
     transition: transform var(--transition-normal), box-shadow var(--transition-normal);
+    position: relative;
 }
 
 .network-card:hover {
     transform: translateY(-4px);
     box-shadow: var(--shadow-lg);
+}
+
+/* Backend servers card */
+.backend-servers-container {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-lg);
+}
+
+.backend-servers-card {
+    background-color: var(--card-background);
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--shadow-md);
+    padding: var(--spacing-lg);
+    width: 100%;
+    margin-top: var(--spacing-md);
+    animation: fadeIn var(--transition-normal);
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
 .network-header {
@@ -239,6 +270,116 @@ header {
     border-top: 1px solid var(--border-color);
 }
 
+/* Server Table Styles */
+.server-table-container {
+    overflow-x: auto;
+    margin-top: var(--spacing-md);
+    border-radius: var(--border-radius-md);
+    box-shadow: var(--shadow-sm);
+}
+
+.server-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+    table-layout: fixed;
+}
+
+.server-table th {
+    text-align: left;
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-bottom: 2px solid var(--border-color);
+    font-weight: 600;
+    white-space: nowrap;
+    background-color: rgba(53, 208, 127, 0.05);
+}
+
+.server-table td {
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-bottom: 1px solid var(--border-color);
+    vertical-align: middle;
+}
+
+/* Column widths */
+.server-table th:nth-child(1),
+.server-table td:nth-child(1) {
+    width: 40%;
+}
+
+.server-table th:nth-child(2),
+.server-table td:nth-child(2),
+.server-table th:nth-child(3),
+.server-table td:nth-child(3) {
+    width: 10%;
+}
+
+.server-table th:nth-child(4),
+.server-table td:nth-child(4),
+.server-table th:nth-child(5),
+.server-table td:nth-child(5) {
+    width: 10%;
+    text-align: center;
+}
+
+.server-table th:nth-child(6),
+.server-table td:nth-child(6) {
+    width: 20%;
+    text-align: center;
+}
+
+.server-table tbody tr:hover {
+    background-color: rgba(53, 208, 127, 0.05);
+}
+
+.server-address {
+    font-family: monospace;
+    word-break: break-all;
+}
+
+.server-metric {
+    white-space: nowrap;
+    text-align: center;
+}
+
+.status-indicator {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+}
+
+.status-good {
+    color: var(--primary-color);
+}
+
+.status-warning {
+    color: var(--badge-testnet-color);
+}
+
+.status-error {
+    color: #E74C3C;
+}
+
+.connect-wallet-btn {
+    background-color: transparent;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-sm);
+    padding: var(--spacing-xs) var(--spacing-sm);
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    white-space: nowrap;
+}
+
+.connect-wallet-btn:hover {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+    color: white;
+}
+
+/* Keep the original server-list styles for backward compatibility */
 .server-list {
     list-style: none;
     margin-top: var(--spacing-md);
