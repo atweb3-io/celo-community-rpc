@@ -15,6 +15,10 @@ Alfajores:
 alfajores-rpc.celo-community.org
 ```
 
+
+This repository contains Cloudflare Workers that serve as reverse proxies for Celo blockchain RPC endpoints. The workers distribute requests across multiple backend RPC nodes to improve reliability and performance.
+
+
 ## Repository Structure
 
 The repository is organized by network, with each network having its own directory:
@@ -228,6 +232,3 @@ open public/index.html
 ### Deployment
 
 The website is automatically deployed to GitHub Pages when changes are pushed to the main branch. The deployment is handled by the GitHub Actions workflow defined in `.github/workflows/deploy-github-pages.yml`.
-
-
-This repository contains Cloudflare Workers that serve as reverse proxies for Celo blockchain RPC endpoints. The workers distribute requests across multiple backend RPC nodes to improve reliability and performance.
