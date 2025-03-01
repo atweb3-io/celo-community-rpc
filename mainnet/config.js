@@ -25,17 +25,24 @@ function getNextBackend() {
  * @returns {Response} - The response to send back
  */
 export async function handleRequest(request, env) {
-  // Apply rate limiting based on client IP
-  const ipAddress = request.headers.get("cf-connecting-ip") || "";
-  if (ipAddress && env.MY_RATE_LIMITER) {
-    const { success } = await env.MY_RATE_LIMITER.limit({ key: ipAddress });
-    if (!success) {
-      return jsonRpcError(
-        null,
-        -32429,
-        `Rate limit exceeded for IP: ${ipAddress}`,
-        429
-      );
+  // Apply rate limiting based on client IP if rate limiter is available
+  if (env && env.MY_RATE_LIMITER) {
+    const ipAddress = request.headers.get("cf-connecting-ip") || "";
+    if (ipAddress) {
+      try {
+        const { success } = await env.MY_RATE_LIMITER.limit({ key: ipAddress });
+        if (!success) {
+          return jsonRpcError(
+            null,
+            -32429,
+            `Rate limit exceeded for IP: ${ipAddress}`,
+            429
+          );
+        }
+      } catch (error) {
+        // Log rate limiting error but continue processing the request
+        console.error(`Rate limiting error: ${error.message}`);
+      }
     }
   }
 
