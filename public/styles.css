@@ -133,11 +133,15 @@ header {
     overflow: hidden;
     transition: transform var(--transition-normal), box-shadow var(--transition-normal);
     position: relative;
+    border: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
 }
 
 .network-card:hover {
     transform: translateY(-4px);
     box-shadow: var(--shadow-lg);
+    border-color: var(--primary-color);
 }
 
 /* Backend servers card */
@@ -194,6 +198,18 @@ header {
     padding: var(--spacing-lg);
     background-color: rgba(53, 208, 127, 0.05);
     border-bottom: 1px solid var(--border-color);
+    position: relative;
+}
+
+.rpc-url::before {
+    content: 'RPC URL';
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    font-size: 0.5rem;
+    color: var(--text-light);
+    font-weight: 500;
+    text-transform: uppercase;
 }
 
 .url-container {
@@ -204,12 +220,17 @@ header {
     border: 1px solid var(--border-color);
     border-radius: var(--border-radius-md);
     padding: var(--spacing-md);
+    max-width: 100%;
+    overflow: hidden;
+    margin-top: 10px;
 }
 
 .url {
     font-family: monospace;
-    font-size: 0.9rem;
-    word-break: break-all;
+
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .copy-btn {

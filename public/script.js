@@ -79,18 +79,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     statusCell.appendChild(statusIcon);
                     row.appendChild(statusCell);
                     
-                    // Action cell
-                    const actionCell = document.createElement('td');
-                    const connectBtn = document.createElement('button');
-                    connectBtn.className = 'connect-wallet-btn';
-                    connectBtn.textContent = 'Connect Wallet';
-                    connectBtn.addEventListener('click', () => {
-                        // This would typically integrate with a wallet provider
-                        alert(`Connecting wallet to ${server}...`);
-                    });
-                    actionCell.appendChild(connectBtn);
-                    row.appendChild(actionCell);
-                    
                     // Add the row to the table
                     serverList.appendChild(row);
                     
