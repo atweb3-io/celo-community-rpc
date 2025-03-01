@@ -21,9 +21,24 @@ function getNextBackend() {
 /**
  * Handle JSON-RPC requests in a way compatible with Ethereum's geth
  * @param {Request} request - The incoming request
+ * @param {Object} env - Environment variables and bindings
  * @returns {Response} - The response to send back
  */
-export async function handleRequest(request) {
+export async function handleRequest(request, env) {
+  // Apply rate limiting based on client IP
+  const ipAddress = request.headers.get("cf-connecting-ip") || "";
+  if (ipAddress && env.MY_RATE_LIMITER) {
+    const { success } = await env.MY_RATE_LIMITER.limit({ key: ipAddress });
+    if (!success) {
+      return jsonRpcError(
+        null,
+        -32429,
+        `Rate limit exceeded for IP: ${ipAddress}`,
+        429
+      );
+    }
+  }
+
   // Handle preflight OPTIONS request for CORS
   if (request.method === 'OPTIONS') {
     return handleCors();

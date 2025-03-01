@@ -11,3 +11,9 @@ ENVIRONMENT = "mainnet"
 [observability]
 enabled = true
 head_sampling_rate = 1 # optional. default = 1.
+
+[[unsafe.bindings]]
+name = "MY_RATE_LIMITER"
+type = "ratelimit"
+namespace_id = "1001"  # Ensure this number is unique within your account
+simple = { limit = 1000, period = 60 }
