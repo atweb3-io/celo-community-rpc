@@ -15,38 +15,6 @@ Alfajores:
 alfajores-rpc.celo-community.org
 ```
 
-## Website
-
-This repository includes a modern, responsive website that provides information about the Celo Community RPC service. The website is deployed using GitHub Pages and can be accessed at: https://celo-community.org
-
-### Features
-
-- Displays RPC URLs for all three networks (Mainnet, Alfajores, Baklava)
-- Shows backend servers for each network
-- Provides usage examples for Web3.js, ethers.js, and celo-cli
-- Responsive design that works on mobile and desktop
-- Dark mode support
-
-### Local Development
-
-To run the website locally:
-
-```bash
-# Clone the repository
-git clone https://github.com/atweb3-io/celo-community-rpc.git
-cd celo-community-rpc
-
-# Open the website in your browser
-open public/index.html
-```
-
-### Deployment
-
-The website is automatically deployed to GitHub Pages when changes are pushed to the main branch. The deployment is handled by the GitHub Actions workflow defined in `.github/workflows/deploy-github-pages.yml`.
-
-
-This repository contains Cloudflare Workers that serve as reverse proxies for Celo blockchain RPC endpoints. The workers distribute requests across multiple backend RPC nodes to improve reliability and performance.
-
 ## Repository Structure
 
 The repository is organized by network, with each network having its own directory:
@@ -230,3 +198,36 @@ For each network, you need to configure DNS records to point to your Cloudflare 
 - `alfajores-rpc.celo-community.org` → Alfajores Worker
 
 This is handled automatically when using Cloudflare as your DNS provider and setting up the routes in the `wrangler.toml` files.
+
+
+## Website
+
+This repository includes a modern, responsive website that provides information about the Celo Community RPC service. The website is deployed using GitHub Pages and can be accessed at: https://celo-community.org
+
+### Features
+
+- Displays RPC URLs for all three networks (Mainnet, Alfajores, Baklava)
+- Shows backend servers for each network
+- Provides usage examples for Web3.js, ethers.js, and celo-cli
+- Responsive design that works on mobile and desktop
+- Dark mode support
+
+### Local Development
+
+To run the website locally:
+
+```bash
+# Clone the repository
+git clone https://github.com/atweb3-io/celo-community-rpc.git
+cd celo-community-rpc
+
+# Open the website in your browser
+open public/index.html
+```
+
+### Deployment
+
+The website is automatically deployed to GitHub Pages when changes are pushed to the main branch. The deployment is handled by the GitHub Actions workflow defined in `.github/workflows/deploy-github-pages.yml`.
+
+
+This repository contains Cloudflare Workers that serve as reverse proxies for Celo blockchain RPC endpoints. The workers distribute requests across multiple backend RPC nodes to improve reliability and performance.
