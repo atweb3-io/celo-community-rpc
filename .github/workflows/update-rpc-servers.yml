@@ -36,7 +36,7 @@ jobs:
       - name: Check for changes
         id: git-check
         run: |
-          git diff --name-only --exit-code */rpc-servers.js || echo "changes=true" >> $GITHUB_OUTPUT
+          git diff --name-only --exit-code */rpc-servers.js public/network/*/rpc-servers.js || echo "changes=true" >> $GITHUB_OUTPUT
       
       - name: Create Pull Request
         if: steps.git-check.outputs.changes == 'true'
@@ -55,3 +55,4 @@ jobs:
           delete-branch: true
           add-paths: |
             */rpc-servers.js
+            public/network/*/rpc-servers.js
