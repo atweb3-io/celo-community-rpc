@@ -47,9 +47,11 @@ for (const network of NETWORKS) {
  */
 async function queryRpcServersFromBlockchain(network) {
   try {
-    // Execute celocli command to get RPC URLs
+    console.log(`Executing celocli command for ${network}...`);
+    // Execute celocli command to get RPC URLs with a timeout
     const command = `celocli network:rpc-urls --node ${network}`;
-    const output = execSync(command).toString();
+    const output = execSync(command, { timeout: 60000 }).toString(); // 60 second timeout
+    console.log(`celocli command for ${network} completed successfully`);
     
     // Parse the output to extract RPC URLs
     // The celocli output format includes validator addresses after the URLs
@@ -78,6 +80,8 @@ async function queryRpcServersFromBlockchain(network) {
  * @returns {boolean} - Whether the server is healthy
  */
 async function checkRpcServerHealth(url) {
+  console.log(`Starting health check for ${url}...`);
+  
   // Validate URL format first
   try {
     new URL(url); // This will throw if the URL is invalid
@@ -88,6 +92,10 @@ async function checkRpcServerHealth(url) {
 
   try {
     // Simple JSON-RPC request to check if the server is responsive
+    console.log(`Sending request to ${url}...`);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), HEALTH_CHECK_TIMEOUT);
+    
     const response = await axios.post(url,
       {
         jsonrpc: '2.0',
@@ -97,9 +105,12 @@ async function checkRpcServerHealth(url) {
       },
       {
         headers: { 'Content-Type': 'application/json' },
-        timeout: HEALTH_CHECK_TIMEOUT
+        timeout: HEALTH_CHECK_TIMEOUT,
+        signal: controller.signal
       }
     );
+    
+    clearTimeout(timeoutId);
     
     // Check if the response is valid
     const isHealthy = response.status === 200 &&
@@ -110,7 +121,11 @@ async function checkRpcServerHealth(url) {
     console.log(`Health check for ${url}: ${isHealthy ? 'HEALTHY' : 'UNHEALTHY'}`);
     return isHealthy;
   } catch (error) {
-    console.error(`Health check failed for ${url}:`, error.message);
+    if (error.code === 'ECONNABORTED' || error.name === 'AbortError') {
+      console.error(`Health check timed out for ${url} after ${HEALTH_CHECK_TIMEOUT}ms`);
+    } else {
+      console.error(`Health check failed for ${url}:`, error.message);
+    }
     return false;
   }
 }
@@ -306,22 +321,40 @@ async function updateAllRpcServers() {
     // Add any new servers from blockchain that aren't in the filtered list
     const allServers = [...new Set([...filteredServers, ...blockchainServers])];
     
-    // Check health of all servers
+    // Check health of all servers in parallel with a maximum concurrency
+    console.log(`Checking health of ${allServers.length} servers for ${network}...`);
     const healthyServers = [];
-    for (const server of allServers) {
-      const isHealthy = await checkRpcServerHealth(server);
+    const MAX_CONCURRENT_CHECKS = 5; // Check 5 servers at a time
+    
+    // Process servers in batches to avoid too many concurrent connections
+    for (let i = 0; i < allServers.length; i += MAX_CONCURRENT_CHECKS) {
+      const batch = allServers.slice(i, i + MAX_CONCURRENT_CHECKS);
+      console.log(`Processing batch ${i/MAX_CONCURRENT_CHECKS + 1} of ${Math.ceil(allServers.length/MAX_CONCURRENT_CHECKS)} for ${network}`);
       
-      // Only include servers that are actually healthy
-      if (isHealthy) {
-        // Update health history
-        updateHealthHistory(network, server, isHealthy);
-        healthyServers.push(server);
-      } else {
-        // Still update health history for tracking purposes
-        updateHealthHistory(network, server, isHealthy);
-        console.log(`Skipping unhealthy server: ${server}`);
+      // Run health checks in parallel for this batch
+      const results = await Promise.all(
+        batch.map(async (server) => {
+          const isHealthy = await checkRpcServerHealth(server);
+          return { server, isHealthy };
+        })
+      );
+      
+      // Process results
+      for (const { server, isHealthy } of results) {
+        // Only include servers that are actually healthy
+        if (isHealthy) {
+          // Update health history
+          updateHealthHistory(network, server, isHealthy);
+          healthyServers.push(server);
+        } else {
+          // Still update health history for tracking purposes
+          updateHealthHistory(network, server, isHealthy);
+          console.log(`Skipping unhealthy server: ${server}`);
+        }
       }
     }
+    
+    console.log(`Health check completed for ${network}: ${healthyServers.length} healthy servers found`);
     
     // Update the RPC servers file and store the servers for website update
     networkServers[network] = updateRpcServersFile(network, healthyServers);
