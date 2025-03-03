@@ -24,9 +24,18 @@ const HEALTH_CHECK_TIMEOUT = 5000;
  */
 async function checkRpcServerHealth(url) {
   console.log(`Testing ${url}...`);
+  
+  // Validate URL format first
+  try {
+    new URL(url); // This will throw if the URL is invalid
+  } catch (error) {
+    console.error(`❌ Health check failed for ${url}: Invalid URL format`);
+    return false;
+  }
+  
   try {
     // Simple JSON-RPC request to check if the server is responsive
-    const response = await axios.post(url, 
+    const response = await axios.post(url,
       {
         jsonrpc: '2.0',
         method: 'eth_blockNumber',

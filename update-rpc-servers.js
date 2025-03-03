@@ -46,10 +46,17 @@ async function queryRpcServersFromBlockchain(network) {
     const output = execSync(command).toString();
     
     // Parse the output to extract RPC URLs
-    // This will depend on the exact format of the celocli output
+    // The celocli output format includes validator addresses after the URLs
     const urls = output.split('\n')
-      .filter(line => line.trim().startsWith('http'))
-      .map(line => line.trim());
+      .filter(line => line.trim().includes('http'))
+      .map(line => {
+        // Split the line by spaces and find the URL part
+        const parts = line.trim().split(/\s+/);
+        // Find the part that starts with http
+        const url = parts.find(part => part.startsWith('http'));
+        return url;
+      })
+      .filter(Boolean); // Remove any undefined values
     
     console.log(`Found ${urls.length} RPC servers for ${network} from blockchain`);
     return urls;
@@ -65,9 +72,17 @@ async function queryRpcServersFromBlockchain(network) {
  * @returns {boolean} - Whether the server is healthy
  */
 async function checkRpcServerHealth(url) {
+  // Validate URL format first
+  try {
+    new URL(url); // This will throw if the URL is invalid
+  } catch (error) {
+    console.error(`Health check failed for ${url}: Invalid URL`);
+    return false;
+  }
+
   try {
     // Simple JSON-RPC request to check if the server is responsive
-    const response = await axios.post(url, 
+    const response = await axios.post(url,
       {
         jsonrpc: '2.0',
         method: 'eth_blockNumber',
@@ -81,9 +96,9 @@ async function checkRpcServerHealth(url) {
     );
     
     // Check if the response is valid
-    const isHealthy = response.status === 200 && 
-                     response.data && 
-                     response.data.result && 
+    const isHealthy = response.status === 200 &&
+                     response.data &&
+                     response.data.result &&
                      !response.data.error;
     
     console.log(`Health check for ${url}: ${isHealthy ? 'HEALTHY' : 'UNHEALTHY'}`);
