@@ -1,31 +1,49 @@
-document.addEventListener('DOMContentLoaded', () => {
-    // Network data
-    const networks = {
-        mainnet: {
-            name: 'Mainnet',
-            servers: [
-                'https://forno.celo.org'
-            ]
-        },
-        alfajores: {
-            name: 'Alfajores',
-            servers: [
-                'https://alfajores-forno.celo-testnet.org'
-            ]
-        },
-        baklava: {
-            name: 'Baklava',
-            servers: [
-                'https://celo-baklava-dev.atweb3.dev',
-                'https://baklava-forno.celo-testnet.org'
-            ]
-        }
+document.addEventListener('DOMContentLoaded', async () => {
+    // Network definitions
+    const networkIds = ['mainnet', 'alfajores', 'baklava'];
+    const networkNames = {
+        'mainnet': 'Mainnet',
+        'alfajores': 'Alfajores',
+        'baklava': 'Baklava'
     };
+    
+    // Load network data from separate files
+    const networks = {};
+    
+    try {
+        // Load RPC server lists for each network
+        await Promise.all(networkIds.map(async (networkId) => {
+            try {
+                // Try to load from the new network-specific file
+                const module = await import(`./network/${networkId}/rpc-servers.js`);
+                networks[networkId] = {
+                    name: networkNames[networkId],
+                    servers: module.servers || []
+                };
+                console.log(`Loaded ${networks[networkId].servers.length} servers for ${networkId} from network-specific file`);
+            } catch (error) {
+                console.warn(`Failed to load RPC servers for ${networkId} from network-specific file:`, error);
+                
+                // Fallback to default values if file loading fails
+                networks[networkId] = {
+                    name: networkNames[networkId],
+                    servers: networkId === 'mainnet' ?
+                        ['https://forno.celo.org'] :
+                        networkId === 'alfajores' ?
+                            ['https://alfajores-forno.celo-testnet.org'] :
+                            ['https://celo-baklava-dev.atweb3.dev', 'https://baklava-forno.celo-testnet.org']
+                };
+                console.log(`Using default servers for ${networkId}`);
+            }
+        }));
+    } catch (error) {
+        console.error('Error loading network data:', error);
+    }
 
     // Server metrics cache
     const serverMetrics = {};
 
-    // Initialize the UI
+    // Initialize the UI after loading network data
     initializeUI();
 
     /**
