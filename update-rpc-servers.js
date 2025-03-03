@@ -25,13 +25,19 @@ const HEALTH_CHECK_TIMEOUT = 5000;
 // Number of consecutive failures before removing an RPC server
 const MAX_FAILURES = 3;
 
-// Store health check history
-let healthHistory = {};
-try {
-  healthHistory = JSON.parse(fs.readFileSync('health-history.json', 'utf8'));
-} catch (error) {
-  console.log('No health history found, creating new history');
-  healthHistory = {};
+// Store health check history for each network
+const healthHistory = {};
+
+// Load health history for each network
+for (const network of NETWORKS) {
+  const historyPath = path.join(__dirname, network, 'health-history.json');
+  try {
+    healthHistory[network] = JSON.parse(fs.readFileSync(historyPath, 'utf8'));
+    console.log(`Loaded health history for ${network}`);
+  } catch (error) {
+    console.log(`No health history found for ${network}, creating new history`);
+    healthHistory[network] = {};
+  }
 }
 
 /**
@@ -111,20 +117,21 @@ async function checkRpcServerHealth(url) {
 
 /**
  * Update the health history for an RPC server
+ * @param {string} network - The network (mainnet, baklava, alfajores)
  * @param {string} url - The RPC server URL
  * @param {boolean} isHealthy - Whether the server is healthy
  * @returns {boolean} - Whether the server should be included
  */
-function updateHealthHistory(url, isHealthy) {
-  if (!healthHistory[url]) {
-    healthHistory[url] = {
+function updateHealthHistory(network, url, isHealthy) {
+  if (!healthHistory[network][url]) {
+    healthHistory[network][url] = {
       consecutiveFailures: 0,
       lastChecked: new Date().toISOString(),
       history: []
     };
   }
   
-  const entry = healthHistory[url];
+  const entry = healthHistory[network][url];
   
   // Update consecutive failures
   if (isHealthy) {
@@ -184,15 +191,19 @@ export const backendList = [
 }
 
 /**
- * Save the health history to a file
+ * Save the health history to network-specific files
  */
 function saveHealthHistory() {
-  if (isDryRun) {
-    console.log(`\n[DRY RUN] Would save health history to health-history.json:`);
-    console.log(JSON.stringify(healthHistory, null, 2));
-  } else {
-    fs.writeFileSync('health-history.json', JSON.stringify(healthHistory, null, 2));
-    console.log('Saved health history to health-history.json');
+  for (const network of NETWORKS) {
+    const historyPath = path.join(__dirname, network, 'health-history.json');
+    
+    if (isDryRun) {
+      console.log(`\n[DRY RUN] Would save health history for ${network} to ${historyPath}:`);
+      console.log(JSON.stringify(healthHistory[network], null, 2));
+    } else {
+      fs.writeFileSync(historyPath, JSON.stringify(healthHistory[network], null, 2));
+      console.log(`Saved health history for ${network} to ${historyPath}`);
+    }
   }
 }
 
@@ -299,10 +310,16 @@ async function updateAllRpcServers() {
     const healthyServers = [];
     for (const server of allServers) {
       const isHealthy = await checkRpcServerHealth(server);
-      const shouldInclude = updateHealthHistory(server, isHealthy);
       
-      if (shouldInclude) {
+      // Only include servers that are actually healthy
+      if (isHealthy) {
+        // Update health history
+        updateHealthHistory(network, server, isHealthy);
         healthyServers.push(server);
+      } else {
+        // Still update health history for tracking purposes
+        updateHealthHistory(network, server, isHealthy);
+        console.log(`Skipping unhealthy server: ${server}`);
       }
     }
     
