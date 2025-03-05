@@ -12,6 +12,11 @@ kv_namespaces = [
   { binding = "HEALTH_KV", id = "$HEALTH_KV_ID", preview_id = "$HEALTH_KV_PREVIEW_ID" }
 ]
 
+# Include validator-addresses.json files as assets
+[[site]]
+bucket = "."
+include = ["*/validator-addresses.json"]
+
 # Run the health check every 5 minutes
 [triggers]
 crons = ["*/5 * * * *"]
