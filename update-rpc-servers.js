@@ -19,6 +19,14 @@ const DEFAULT_ENDPOINTS = {
   'alfajores': ['https://alfajores-forno.celo-testnet.org']
 };
 
+// RPC endpoints to use for celocli commands
+// These should be reliable endpoints to ensure the celocli commands succeed
+const CELOCLI_ENDPOINTS = {
+  'mainnet': 'https://forno.celo.org',
+  'baklava': 'https://baklava-forno.celo-testnet.org',
+  'alfajores': 'https://alfajores-forno.celo-testnet.org'
+};
+
 // Maximum timeout for RPC health checks (ms)
 const HEALTH_CHECK_TIMEOUT = 5000;
 
@@ -49,8 +57,11 @@ async function queryRpcServersFromBlockchain(network) {
   try {
     console.log(`Executing celocli command for ${network}...`);
     // Execute celocli command to get RPC URLs with a timeout
-    const command = `celocli network:rpc-urls --node ${network}`;
-    const output = execSync(command, { timeout: 60000 }).toString(); // 60 second timeout
+    // Use the specified endpoint URL directly with the --node parameter
+    const nodeUrl = CELOCLI_ENDPOINTS[network];
+    const command = `celocli network:rpc-urls --node ${nodeUrl}`;
+    console.log(`Using node URL for celocli: ${nodeUrl}`);
+    const output = execSync(command, { timeout: 120000 }).toString(); // 120 second timeout (increased for reliability)
     console.log(`celocli command for ${network} completed successfully`);
     
     // Parse the output to extract RPC URLs and validator addresses
