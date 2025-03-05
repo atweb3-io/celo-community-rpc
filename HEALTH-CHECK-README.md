@@ -196,8 +196,25 @@ You can also use the Cloudflare dashboard to view the KV namespace and check if 
 The health check system can be configured by modifying the following constants:
 
 - `REQUEST_TIMEOUT_MS`: Timeout for RPC requests (default: 30 seconds)
-- `HEALTH_CHECK_TIMEOUT_MS`: Timeout for health check requests (default: 5 seconds)
-- `HEALTH_CHECK_COOLDOWN_MS`: Cooldown period for unhealthy backends (default: 5 minutes)
+- `HEALTH_CHECK_TIMEOUT_MS`: Timeout for health check requests (default: 10 seconds)
+- `HEALTH_CHECK_COOLDOWN_MS`: Cooldown period for unhealthy backends (default: 15 minutes)
 - `MAX_RETRIES`: Maximum number of retries for failed requests (default: 2)
+- `KV_CACHE_TTL_SECONDS`: Cache TTL for KV values that don't change often (default: 1 hour)
 
 These constants can be found in the respective configuration files.
+
+## Performance Optimizations
+
+The health check system includes several optimizations to minimize KV operations and improve performance:
+
+1. **Longer Health Check Interval**: The health check worker runs every 15 minutes instead of every 5 minutes, reducing the number of health checks performed.
+
+2. **Longer Cooldown Period**: Unhealthy backends are marked as down for 15 minutes instead of 5 minutes, reducing the frequency of status changes.
+
+3. **KV Caching**: Validator addresses are cached for 1 hour, reducing the number of KV reads required.
+
+4. **KV Expiration**: Validator addresses are stored with a 1-day expiration, automatically cleaning up stale data.
+
+5. **Increased Timeout**: Health check timeout is set to 10 seconds instead of 5 seconds, giving backends more time to respond.
+
+These optimizations help reduce the number of KV operations and improve the overall performance of the health check system.

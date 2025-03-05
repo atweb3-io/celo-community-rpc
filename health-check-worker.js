@@ -7,8 +7,9 @@ import { backendList as baklavaBackends } from './baklava/rpc-servers.js';
 import { backendList as alfajoresBackends } from './alfajores/rpc-servers.js';
 
 // Constants
-const HEALTH_CHECK_TIMEOUT_MS = 5000; // 5 seconds
-const HEALTH_CHECK_COOLDOWN_MS = 300000; // 5 minutes (300 seconds)
+const HEALTH_CHECK_TIMEOUT_MS = 10000; // 10 seconds
+const HEALTH_CHECK_COOLDOWN_MS = 900000; // 15 minutes (900 seconds)
+const KV_CACHE_TTL_SECONDS = 3600; // 1 hour cache TTL for KV values that don't change often
 
 // Network configurations
 const NETWORKS = [
@@ -64,10 +65,11 @@ async function getHealthStatus(env) {
       const isDown = await env.HEALTH_KV.get(`down:${backend}`);
       const reason = isDown || null;
       
-      // Get additional information from KV store
+      // Get additional information from KV store with caching for values that don't change often
       const blockHeight = await env.HEALTH_KV.get(`blockHeight:${backend}`);
       const lastChecked = await env.HEALTH_KV.get(`lastChecked:${backend}`);
-      const validatorAddress = await env.HEALTH_KV.get(`validator:${backend}`);
+      // Validator addresses don't change often, so we can use a longer cache TTL
+      const validatorAddress = await env.HEALTH_KV.get(`validator:${backend}`, { cacheTtl: KV_CACHE_TTL_SECONDS });
       
       // Convert "null" string to actual null for the response
       const actualValidatorAddress = validatorAddress === "null" ? null : validatorAddress;
@@ -239,7 +241,8 @@ async function fetchValidatorAddresses(env) {
             
             // Only update if the address has changed
             if (currentAddress !== addressToStore) {
-              await env.HEALTH_KV.put(`validator:${url}`, addressToStore);
+              // Store with a long expiration time since validator addresses rarely change
+              await env.HEALTH_KV.put(`validator:${url}`, addressToStore, { expirationTtl: 86400 }); // 1 days
               updatedAddresses.push(url);
               console.log(`Updated validator address for ${url}: ${addressToStore}`);
             }
@@ -287,7 +290,8 @@ async function setNullValidatorAddresses(network, env) {
       
       // Only update if the address is not already "null" (as a string)
       if (currentAddress !== "null") {
-        await env.HEALTH_KV.put(`validator:${backend}`, "null");
+        // Store with a long expiration time since validator addresses rarely change
+        await env.HEALTH_KV.put(`validator:${backend}`, "null", { expirationTtl: 86400 }); // 1 day
         updatedAddresses.push(backend);
         console.log(`Set validator address for ${backend} to "null"`);
       }

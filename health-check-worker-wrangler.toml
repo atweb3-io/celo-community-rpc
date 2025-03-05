@@ -17,9 +17,9 @@ kv_namespaces = [
 [site]
 bucket = "./site"
 
-# Run the health check every 5 minutes
+# Run the health check every 15 minutes
 [triggers]
-crons = ["*/5 * * * *"]
+crons = ["*/15 * * * *"]
 
 [observability]
 enabled = true
