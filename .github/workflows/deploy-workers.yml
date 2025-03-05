@@ -113,7 +113,7 @@ jobs:
               
               # Upload the entire validator-addresses.json file to the STATIC_CONTENT_KV namespace
               echo "Uploading $network/validator-addresses.json to STATIC_CONTENT_KV"
-              wrangler kv:key put --binding=STATIC_CONTENT_KV "$network/validator-addresses.json" "$(cat $network/validator-addresses.json)"
+              wrangler kv:key put --namespace-id=$STATIC_CONTENT_KV_ID "$network/validator-addresses.json" "$(cat $network/validator-addresses.json)"
             else
               echo "Warning: $network/validator-addresses.json not found"
             fi
