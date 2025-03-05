@@ -1,0 +1,132 @@
+# Celo Community RPC Health Check System
+
+This document describes the health check system implemented for the Celo Community RPC service.
+
+## Overview
+
+The health check system consists of two components:
+
+1. **Passive Health Checks**: Implemented directly in the RPC proxy workers
+2. **Active Health Checks**: Implemented as a separate scheduled worker
+
+Together, these components ensure that unhealthy backends are automatically excluded from the rotation, improving the reliability and performance of the service.
+
+## Passive Health Checks
+
+Passive health checks are implemented in the RPC proxy workers (`mainnet/config.js`, `baklava/config.js`, and `alfajores/config.js`). They detect failures during actual user requests and mark failing backends as unhealthy.
+
+### How Passive Health Checks Work
+
+1. When a request is received, the worker retrieves a list of healthy backends from the KV store
+2. If a backend fails to respond or returns an error, it is marked as unhealthy in the KV store
+3. Unhealthy backends are excluded from the rotation for a cooldown period (5 minutes)
+4. After the cooldown period, the backend is automatically reinstated
+
+### Types of Failures Detected
+
+- HTTP errors (non-200 responses)
+- Timeouts (requests that take too long to complete)
+- RPC-level errors that indicate health issues (e.g., node syncing, out of memory)
+
+## Active Health Checks
+
+Active health checks are implemented as a separate scheduled worker (`health-check-worker.js`). This worker runs on a schedule and proactively checks the health of all backends.
+
+### How Active Health Checks Work
+
+1. The worker runs every 5 minutes (configurable in `health-check-worker-wrangler.toml`)
+2. For each backend in each network, it performs the following checks:
+   - If the backend is already marked as down, it checks if it has recovered
+   - If the backend is healthy, it removes it from the down list
+   - If the backend is unhealthy, it marks it as down in the KV store
+3. The worker logs the results of the health checks
+
+### Health Check Criteria
+
+The active health check performs the following checks:
+
+1. **Sync Status Check**: Calls `eth_syncing` to check if the node is fully synced
+2. **Block Number Check**: Calls `eth_blockNumber` to ensure the node is not stale
+
+A backend is considered healthy if:
+- It responds within the timeout period (5 seconds)
+- It returns a 200 OK response
+- It is fully synced (not in the process of syncing)
+- It returns a valid block number
+
+## KV Store
+
+Both passive and active health checks use the same KV store to track backend health status. The KV store is configured in the wrangler.toml files for each worker.
+
+### KV Store Structure
+
+- Keys: `down:{backend_url}` (e.g., `down:https://forno.celo.org`)
+- Values: Reason for marking the backend as unhealthy
+- TTL: 5 minutes (300 seconds)
+
+## Deployment
+
+To deploy the health check system:
+
+1. Create a KV namespace in the Cloudflare dashboard
+2. Add the KV namespace ID to the wrangler.toml files for all workers
+3. Deploy the RPC proxy workers and the health check worker
+
+```bash
+# Deploy RPC proxy workers
+cd mainnet
+wrangler publish
+
+cd ../baklava
+wrangler publish
+
+cd ../alfajores
+wrangler publish
+
+# Deploy health check worker
+cd ..
+wrangler publish -c health-check-worker-wrangler.toml
+```
+
+## Monitoring
+
+The health check system logs information about backend health status. You can monitor these logs in the Cloudflare dashboard.
+
+Key metrics to monitor:
+- Number of healthy backends
+- Number of unhealthy backends
+- Reasons for marking backends as unhealthy
+- Recovery time for unhealthy backends
+
+## Testing
+
+### Local Testing Limitations
+
+The health check system relies on Cloudflare KV to track backend health status. When testing locally, the KV namespace is not available, so the health check system will not work as expected. The test script (`test-health-checks.js`) will show that backends are not excluded from rotation after simulating a failure:
+
+```bash
+npm run test:health-checks
+```
+
+This is expected behavior in a local environment. The test is still useful for verifying that the RPC endpoints are working and that the load balancing is functioning correctly.
+
+### Testing in Production
+
+To properly test the health check system, you need to deploy it to Cloudflare and configure the KV namespace. Once deployed, you can test it by:
+
+1. Sending requests to the RPC endpoints
+2. Monitoring the Cloudflare logs to see if backends are being marked as unhealthy
+3. Verifying that unhealthy backends are excluded from rotation
+
+You can also use the Cloudflare dashboard to view the KV namespace and check if backends are being marked as unhealthy.
+
+## Configuration
+
+The health check system can be configured by modifying the following constants:
+
+- `REQUEST_TIMEOUT_MS`: Timeout for RPC requests (default: 30 seconds)
+- `HEALTH_CHECK_TIMEOUT_MS`: Timeout for health check requests (default: 5 seconds)
+- `HEALTH_CHECK_COOLDOWN_MS`: Cooldown period for unhealthy backends (default: 5 minutes)
+- `MAX_RETRIES`: Maximum number of retries for failed requests (default: 2)
+
+These constants can be found in the respective configuration files.

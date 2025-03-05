@@ -1,4 +1,4 @@
-# Celo Community RPC
+# Celo Community RPC Gateway
 
 Mainnet:
 ```
@@ -50,6 +50,10 @@ celo-community-rpc/
 │   ├── styles.css                   # CSS styles
 │   ├── script.js                    # JavaScript for interactivity
 │   └── favicon.svg                  # Website favicon
+├── health-check-worker.js           # Active health check worker
+├── health-check-worker-wrangler.toml # Configuration for health check worker
+├── HEALTH-CHECK-README.md           # Documentation for health check system
+├── test-health-checks.js            # Test script for health checks
 ├── update-rpc-servers.js            # Script to update RPC servers
 └── package.json                     # Project dependencies
 ```
@@ -78,10 +82,33 @@ To deploy the workers, you need to set up the following GitHub secrets:
 1. `CLOUDFLARE_API_TOKEN`: Your Cloudflare API token with Worker deployment permissions
 2. `CLOUDFLARE_ACCOUNT_ID`: Your Cloudflare account ID
 3. `CLOUDFLARE_ZONE_ID`: The zone ID for your domain
+4. `HEALTH_KV_ID`: The ID of your Cloudflare KV namespace for health checks
+5. `HEALTH_KV_PREVIEW_ID`: The preview ID of your Cloudflare KV namespace (can be the same as HEALTH_KV_ID)
 
 For the automatic RPC server updates workflow, you also need:
 
-4. `GH_PAT`: A GitHub Personal Access Token with `repo` scope (for creating pull requests)
+6. `GH_PAT`: A GitHub Personal Access Token with `repo` scope (for creating pull requests)
+
+#### Setting Up Health Check KV Namespace
+
+1. Create a KV namespace in your Cloudflare dashboard:
+   - Go to Workers & Pages > KV
+   - Click "Create namespace"
+   - Name it (e.g., "celo-health-checks")
+   - Note the ID that appears in the dashboard
+
+2. Add the KV namespace ID as a GitHub secret:
+   - Go to your GitHub repository > Settings > Secrets and variables > Actions
+   - Add a new repository secret named `HEALTH_KV_ID` with the value of your KV namespace ID
+   - Add another secret named `HEALTH_KV_PREVIEW_ID` with the same value
+
+3. (Optional) If you want to use separate KV namespaces for each network:
+   - Create three KV namespaces in Cloudflare (one for each network)
+   - Add the following secrets to GitHub:
+     - `MAINNET_HEALTH_KV_ID` and `MAINNET_HEALTH_KV_PREVIEW_ID`
+     - `BAKLAVA_HEALTH_KV_ID` and `BAKLAVA_HEALTH_KV_PREVIEW_ID`
+     - `ALFAJORES_HEALTH_KV_ID` and `ALFAJORES_HEALTH_KV_PREVIEW_ID`
+   - Uncomment the relevant sections in the GitHub Actions workflow file
 
 To set up these secrets:
 
@@ -166,6 +193,37 @@ The RPC proxy implements different strategies for handling request failures depe
 - Each request in the batch is processed independently
 - There is no retry mechanism for individual requests within a batch
 - Failed requests return error responses within the batch, while other requests may still succeed
+
+## Health Check System
+
+The RPC proxy includes a comprehensive health check system that automatically detects and excludes unhealthy backends from the rotation. This improves reliability by ensuring that requests are only sent to healthy backends.
+
+### How It Works
+
+The health check system consists of two components:
+
+1. **Passive Health Checks**: Implemented directly in the RPC proxy workers
+   - Detect failures during actual user requests
+   - Immediately mark failing backends as unhealthy in Cloudflare KV
+   - Exclude unhealthy backends from the rotation for a cooldown period (5 minutes)
+   - Automatically reinstate backends after the cooldown period
+
+2. **Active Health Checks**: Implemented as a separate scheduled worker
+   - Runs every 5 minutes
+   - Proactively checks the health of all backends
+   - Verifies that backends are fully synced and responsive
+   - Marks unhealthy backends in Cloudflare KV
+
+### Benefits
+
+- **Improved Reliability**: Unhealthy backends are automatically excluded from the rotation
+- **Faster Response Times**: Requests are only sent to healthy backends
+- **Automatic Recovery**: Backends are automatically reinstated after the cooldown period
+- **Proactive Issue Detection**: Active health checks detect issues before they affect users
+
+### Documentation
+
+For detailed information about the health check system, see [HEALTH-CHECK-README.md](HEALTH-CHECK-README.md).
 
 ## Automatic RPC Server Updates
 

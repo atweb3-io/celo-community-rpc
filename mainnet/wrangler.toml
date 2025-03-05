@@ -17,3 +17,9 @@ name = "MY_RATE_LIMITER"
 type = "ratelimit"
 namespace_id = "1001"  # Ensure this number is unique within your account
 simple = { limit = 1000, period = 60 }
+
+# KV namespace for tracking backend health status
+[[kv_namespaces]]
+binding = "HEALTH_KV"
+id = "$HEALTH_KV_ID"
+preview_id = "$HEALTH_KV_PREVIEW_ID"

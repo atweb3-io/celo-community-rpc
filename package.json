@@ -7,8 +7,9 @@
     "update-rpc": "node update-rpc-servers.js",
     "test": "echo \"Error: no test specified\" && exit 1",
     "test:health": "node test-rpc-health.js",
+    "test:health-checks": "node test-health-checks.js",
     "test:celocli": "node test-celocli.js",
-    "test:all": "npm run test:celocli && npm run test:health",
+    "test:all": "npm run test:celocli && npm run test:health && npm run test:health-checks",
     "dry-run": "NODE_ENV=test node update-rpc-servers.js"
   },
   "repository": {

@@ -4,18 +4,101 @@ import { backendList } from './rpc-servers.js';
 // Constants
 const REQUEST_TIMEOUT_MS = 30000; // 30 seconds
 const MAX_RETRIES = 2;
+const HEALTH_CHECK_COOLDOWN_MS = 300000; // 5 minutes (300 seconds)
 
 // Round-robin index tracker
 let currentBackendIndex = 0;
 
 /**
+ * Get healthy backends from the KV store
+ * @param {Object} env - Environment variables and bindings
+ * @returns {Promise<string[]>} - Array of healthy backend URLs
+ */
+async function getHealthyBackends(env) {
+  // If HEALTH_KV is not available, return all backends
+  if (!env || !env.HEALTH_KV) {
+    return [...backendList];
+  }
+
+  const healthyBackends = [];
+  
+  for (const backend of backendList) {
+    // Check if the backend is marked as down in KV
+    const isDown = await env.HEALTH_KV.get(`down:${backend}`);
+    if (!isDown) {
+      healthyBackends.push(backend);
+    }
+  }
+  
+  // If all backends are marked as down, return all backends as a fallback
+  if (healthyBackends.length === 0) {
+    console.warn('All backends are marked as down, using full list as fallback');
+    return [...backendList];
+  }
+  
+  return healthyBackends;
+}
+
+/**
+ * Mark a backend as unhealthy in the KV store
+ * @param {Object} env - Environment variables and bindings
+ * @param {string} backend - The backend URL to mark as unhealthy
+ * @param {string} reason - The reason for marking the backend as unhealthy
+ * @returns {Promise<void>}
+ */
+async function markBackendUnhealthy(env, backend, reason) {
+  // If HEALTH_KV is not available, do nothing
+  if (!env || !env.HEALTH_KV) {
+    console.warn(`Cannot mark backend ${backend} as unhealthy: HEALTH_KV not available`);
+    return;
+  }
+  
+  // Mark the backend as down for 5 minutes
+  await env.HEALTH_KV.put(`down:${backend}`, reason, { expirationTtl: HEALTH_CHECK_COOLDOWN_MS / 1000 });
+  console.warn(`Backend ${backend} marked as unhealthy: ${reason}`);
+}
+
+/**
+ * Check if an RPC error indicates a health issue
+ * @param {Object} error - The RPC error object
+ * @returns {boolean} - Whether the error indicates a health issue
+ */
+function isHealthRelatedError(error) {
+  if (!error || !error.message) {
+    return false;
+  }
+  
+  // Check for specific error messages that indicate node health issues
+  const unhealthyErrorPatterns = [
+    /syncing/i,
+    /database.*compact/i,
+    /out of memory/i,
+    /not ready/i,
+    /timeout/i,
+    /timed? out/i,
+    /connection refused/i,
+    /ECONNABORTED/i,
+    /network error/i
+  ];
+  
+  return unhealthyErrorPatterns.some(pattern =>
+    pattern.test(error.message)
+  );
+}
+
+/**
  * Get the next backend in round-robin fashion
+ * @param {string[]} backends - List of backends to choose from
  * @returns {string} - The next backend URL
  */
-function getNextBackend() {
-  const backend = backendList[currentBackendIndex];
-  currentBackendIndex = (currentBackendIndex + 1) % backendList.length;
-  return backend;
+function getNextBackend(backends = backendList) {
+  if (!backends || backends.length === 0) {
+    return backendList[currentBackendIndex];
+  }
+  
+  const index = currentBackendIndex % backends.length;
+  currentBackendIndex = (currentBackendIndex + 1) % backends.length;
+  return backends[index];
 }
 
 /**
@@ -81,19 +164,20 @@ export async function handleRequest(request, env) {
 
   // Handle batch requests
   if (Array.isArray(requestBody)) {
-    return handleBatchRequest(requestBody);
+    return handleBatchRequest(requestBody, env);
   }
 
   // Handle single request
-  return handleSingleRequest(requestBody);
+  return handleSingleRequest(requestBody, env);
 }
 
 /**
  * Handle a single JSON-RPC request
  * @param {Object} requestBody - The parsed JSON-RPC request
+ * @param {Object} env - Environment variables and bindings
  * @returns {Response} - The response to send back
  */
-async function handleSingleRequest(requestBody) {
+async function handleSingleRequest(requestBody, env) {
   // Validate JSON-RPC request format
   if (!isValidJsonRpcRequest(requestBody)) {
     return jsonRpcError(
@@ -104,12 +188,31 @@ async function handleSingleRequest(requestBody) {
     );
   }
 
-  // Select a backend using round-robin strategy
-  let target = getNextBackend();
+  // Get list of healthy backends
+  const healthyBackends = await getHealthyBackends(env);
   
   // Try to forward the request with retries
   let lastError = null;
+  let attemptedBackends = new Set();
+  
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    // Select a backend that hasn't been tried yet
+    let target;
+    let availableBackends = healthyBackends.filter(backend => !attemptedBackends.has(backend));
+    
+    if (availableBackends.length === 0) {
+      // If we've tried all healthy backends, break out of the loop
+      if (attemptedBackends.size >= healthyBackends.length) {
+        break;
+      }
+      // Otherwise, reset and try again (shouldn't happen in normal operation)
+      availableBackends = [...healthyBackends];
+    }
+    
+    // Get the next backend
+    target = getNextBackend(availableBackends);
+    attemptedBackends.add(target);
+    
     try {
       // Forward the request to the selected Celo Alfajores testnet RPC endpoint
       const controller = new AbortController();
@@ -128,11 +231,20 @@ async function handleSingleRequest(requestBody) {
       
       // Check if the response is successful
       if (!response.ok) {
+        // Mark this backend as unhealthy
+        await markBackendUnhealthy(env, target, `HTTP error: ${response.status}`);
         throw new Error(`HTTP error! Status: ${response.status}`);
       }
       
       // Get the response body
       const responseBody = await response.json();
+      
+      // Check for RPC-level errors that might indicate an unhealthy node
+      if (responseBody.error && isHealthRelatedError(responseBody.error)) {
+        // Mark this backend as unhealthy
+        await markBackendUnhealthy(env, target, `RPC error: ${responseBody.error.message}`);
+        throw new Error(`RPC error: ${responseBody.error.message}`);
+      }
       
       // Log which backend was used for this request
       console.log(`Request ${requestBody.id || 'unknown'} method ${requestBody.method} served by backend: ${target}`);
@@ -147,11 +259,11 @@ async function handleSingleRequest(requestBody) {
       });
     } catch (error) {
       lastError = error;
-      // If this was the last retry, we'll fall through to the error handler
+      console.error(`Error with backend ${target}: ${error.message}`);
+      
+      // Continue to the next backend if we haven't exhausted all retries
       if (attempt < MAX_RETRIES) {
-        // Try a different backend for the next attempt
-        const newIndex = (backendList.indexOf(target) + 1) % backendList.length;
-        target = backendList[newIndex];
+        continue;
       }
     }
   }
@@ -160,7 +272,7 @@ async function handleSingleRequest(requestBody) {
   return jsonRpcError(
     requestBody.id || null,
     -32603,
-    `Internal error: ${lastError.message}`,
+    `Internal error: ${lastError ? lastError.message : 'All backends failed'}`,
     500
   );
 }
@@ -168,13 +280,17 @@ async function handleSingleRequest(requestBody) {
 /**
  * Handle a batch of JSON-RPC requests
  * @param {Array} requests - Array of JSON-RPC request objects
+ * @param {Object} env - Environment variables and bindings
  * @returns {Response} - The response to send back
  */
-async function handleBatchRequest(requests) {
+async function handleBatchRequest(requests, env) {
   // Check if the batch is empty
   if (requests.length === 0) {
     return jsonRpcError(null, -32600, 'Invalid Request: Empty batch', 400);
   }
+  
+  // Get list of healthy backends
+  const healthyBackends = await getHealthyBackends(env);
   
   // Track which backends were used
   const usedBackends = new Set();
@@ -195,8 +311,8 @@ async function handleBatchRequest(requests) {
       }
       
       try {
-        // Select a backend using round-robin strategy
-        const target = getNextBackend();
+        // Select a backend from healthy backends
+        const target = getNextBackend(healthyBackends);
         // Add to the set of used backends
         usedBackends.add(target);
         
@@ -216,11 +332,23 @@ async function handleBatchRequest(requests) {
         clearTimeout(timeoutId);
         
         if (!response.ok) {
+          // Mark this backend as unhealthy
+          await markBackendUnhealthy(env, target, `HTTP error: ${response.status}`);
           throw new Error(`HTTP error! Status: ${response.status}`);
         }
         
-        return await response.json();
+        const responseBody = await response.json();
+        
+        // Check for RPC-level errors that might indicate an unhealthy node
+        if (responseBody.error && isHealthRelatedError(responseBody.error)) {
+          // Mark this backend as unhealthy
+          await markBackendUnhealthy(env, target, `RPC error: ${responseBody.error.message}`);
+          throw new Error(`RPC error: ${responseBody.error.message}`);
+        }
+        
+        return responseBody;
       } catch (error) {
+        console.error(`Batch request error: ${error.message}`);
         return {
           jsonrpc: '2.0',
           id: request.id || null,
