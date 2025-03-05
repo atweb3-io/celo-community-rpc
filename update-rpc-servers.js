@@ -43,7 +43,7 @@ for (const network of NETWORKS) {
 /**
  * Query RPC servers from the blockchain using celocli
  * @param {string} network - The network to query (mainnet, baklava, alfajores)
- * @returns {string[]} - Array of RPC server URLs
+ * @returns {Object[]} - Array of objects with RPC server URLs and validator addresses
  */
 async function queryRpcServersFromBlockchain(network) {
   try {
@@ -53,21 +53,46 @@ async function queryRpcServersFromBlockchain(network) {
     const output = execSync(command, { timeout: 60000 }).toString(); // 60 second timeout
     console.log(`celocli command for ${network} completed successfully`);
     
-    // Parse the output to extract RPC URLs
+    // Parse the output to extract RPC URLs and validator addresses
     // The celocli output format includes validator addresses after the URLs
-    const urls = output.split('\n')
+    const servers = output.split('\n')
       .filter(line => line.trim().includes('http'))
       .map(line => {
-        // Split the line by spaces and find the URL part
+        // Split the line by spaces
         const parts = line.trim().split(/\s+/);
-        // Find the part that starts with http
+        
+        // Find the part that starts with http (the URL)
         const url = parts.find(part => part.startsWith('http'));
-        return url;
+        
+        // Find the part that starts with 0x (the validator address)
+        // It's typically the last part of the line
+        const validatorAddress = parts.find(part => part.startsWith('0x'));
+        
+        return { url, validatorAddress };
       })
-      .filter(Boolean); // Remove any undefined values
+      .filter(server => server.url); // Remove any entries without URLs
     
-    console.log(`Found ${urls.length} RPC servers for ${network} from blockchain`);
-    return urls;
+    console.log(`Found ${servers.length} RPC servers for ${network} from blockchain`);
+    
+    // Store validator addresses in a file for the health check worker to use
+    const validatorAddressesPath = path.join(__dirname, network, 'validator-addresses.json');
+    const validatorAddresses = {};
+    
+    servers.forEach(server => {
+      if (server.url && server.validatorAddress) {
+        validatorAddresses[server.url] = server.validatorAddress;
+      }
+    });
+    
+    if (!isDryRun) {
+      fs.writeFileSync(validatorAddressesPath, JSON.stringify(validatorAddresses, null, 2));
+      console.log(`Saved validator addresses for ${network} to ${validatorAddressesPath}`);
+    } else {
+      console.log(`[DRY RUN] Would save validator addresses for ${network} to ${validatorAddressesPath}`);
+    }
+    
+    // Return just the URLs for backward compatibility
+    return servers.map(server => server.url);
   } catch (error) {
     console.error(`Error querying RPC servers for ${network}:`, error.message);
     return [];

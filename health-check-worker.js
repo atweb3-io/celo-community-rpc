@@ -64,15 +64,25 @@ async function getHealthStatus(env) {
       const isDown = await env.HEALTH_KV.get(`down:${backend}`);
       const reason = isDown || null;
       
+      // Get additional information from KV store
+      const blockHeight = await env.HEALTH_KV.get(`blockHeight:${backend}`);
+      const lastChecked = await env.HEALTH_KV.get(`lastChecked:${backend}`);
+      const validatorAddress = await env.HEALTH_KV.get(`validator:${backend}`);
+      
+      const backendInfo = {
+        url: backend,
+        blockHeight: blockHeight ? parseInt(blockHeight) : null,
+        lastChecked: lastChecked || null,
+        validatorAddress: validatorAddress || null
+      };
+      
       if (isDown) {
         results.networks[network.name].unhealthy.push({
-          url: backend,
+          ...backendInfo,
           reason: reason
         });
       } else {
-        results.networks[network.name].healthy.push({
-          url: backend
-        });
+        results.networks[network.name].healthy.push(backendInfo);
       }
     }
   }
@@ -87,6 +97,9 @@ async function getHealthStatus(env) {
 async function checkAllBackends(env) {
   const results = [];
   
+  // Try to get validator addresses from celocli
+  await fetchValidatorAddresses(env);
+  
   for (const network of NETWORKS) {
     console.log(`Checking backends for ${network.name}...`);
     
@@ -98,7 +111,7 @@ async function checkAllBackends(env) {
           console.log(`Backend ${backend} is currently marked as down, checking if it has recovered`);
           
           // Check if the backend has recovered
-          const isHealthy = await checkBackendHealth(backend);
+          const isHealthy = await checkBackendHealth(backend, env);
           if (isHealthy) {
             // If the backend has recovered, remove it from the down list
             await env.HEALTH_KV.delete(`down:${backend}`);
@@ -112,7 +125,7 @@ async function checkAllBackends(env) {
         }
         
         // Perform health check
-        const isHealthy = await checkBackendHealth(backend);
+        const isHealthy = await checkBackendHealth(backend, env);
         results.push({ network: network.name, backend, healthy: isHealthy, wasDown: false });
         
         if (!isHealthy) {
@@ -148,12 +161,76 @@ async function checkAllBackends(env) {
 }
 
 /**
+ * Fetch validator addresses from validator-addresses.json files and store them in KV
+ * @param {Object} env - Environment variables and bindings
+ */
+async function fetchValidatorAddresses(env) {
+  if (!env) return;
+  
+  for (const network of NETWORKS) {
+    try {
+      console.log(`Fetching validator addresses for ${network.name}...`);
+      
+      // Try to fetch the validator-addresses.json file for this network
+      try {
+        const validatorAddressesPath = `./${network.name}/validator-addresses.json`;
+        // Use fetch to get the file from the same origin
+        const response = await fetch(new URL(validatorAddressesPath, self.location.href));
+        
+        if (response.ok) {
+          const validatorAddresses = await response.json();
+          
+          // Store validator addresses in KV
+          for (const [url, address] of Object.entries(validatorAddresses)) {
+            await env.HEALTH_KV.put(`validator:${url}`, address);
+            console.log(`Stored validator address for ${url}: ${address}`);
+          }
+          
+          console.log(`Successfully loaded validator addresses for ${network.name}`);
+        } else {
+          console.warn(`Could not load validator addresses for ${network.name}: ${response.status} ${response.statusText}`);
+          // Fall back to using null addresses
+          await setNullValidatorAddresses(network, env);
+        }
+      } catch (fetchError) {
+        console.warn(`Error fetching validator addresses for ${network.name}:`, fetchError.message);
+        // Fall back to using null addresses
+        await setNullValidatorAddresses(network, env);
+      }
+    } catch (error) {
+      console.error(`Error processing validator addresses for ${network.name}:`, error.message);
+    }
+  }
+}
+
+/**
+ * Set validator addresses to null when real addresses aren't available
+ * @param {Object} network - The network configuration
+ * @param {Object} env - Environment variables and bindings
+ */
+async function setNullValidatorAddresses(network, env) {
+  console.log(`Setting null validator addresses for ${network.name}...`);
+  
+  for (const backend of network.backends) {
+    try {
+      // Store null for the validator address
+      await env.HEALTH_KV.put(`validator:${backend}`, null);
+      console.log(`Set validator address for ${backend} to null`);
+    } catch (error) {
+      console.error(`Error setting null validator address for ${backend}:`, error.message);
+    }
+  }
+}
+
+/**
  * Check if a backend is healthy
  * @param {string} backend - The backend URL to check
+ * @param {Object} env - Environment variables and bindings
  * @returns {Promise<boolean>} - Whether the backend is healthy
  */
-async function checkBackendHealth(backend) {
+async function checkBackendHealth(backend, env) {
   console.log(`Checking health of ${backend}...`);
+  const now = new Date().toISOString();
   
   try {
     // Create a JSON-RPC request to check node health
@@ -180,6 +257,8 @@ async function checkBackendHealth(backend) {
     
     if (!response.ok) {
       console.error(`Health check failed for ${backend}: HTTP ${response.status}`);
+      // Update last checked time even if unhealthy
+      if (env) await env.HEALTH_KV.put(`lastChecked:${backend}`, now);
       return false;
     }
     
@@ -190,12 +269,16 @@ async function checkBackendHealth(backend) {
     // If result is an object, the node is still syncing
     if (data.error) {
       console.error(`Health check failed for ${backend}: RPC error: ${data.error.message}`);
+      // Update last checked time even if unhealthy
+      if (env) await env.HEALTH_KV.put(`lastChecked:${backend}`, now);
       return false;
     }
     
     // If the node is syncing, mark it as unhealthy
     if (data.result && typeof data.result === 'object') {
       console.log(`Backend ${backend} is still syncing`);
+      // Update last checked time even if unhealthy
+      if (env) await env.HEALTH_KV.put(`lastChecked:${backend}`, now);
       return false;
     }
     
@@ -217,6 +300,8 @@ async function checkBackendHealth(backend) {
     
     if (!blockNumberResponse.ok) {
       console.error(`Block number check failed for ${backend}: HTTP ${blockNumberResponse.status}`);
+      // Update last checked time even if unhealthy
+      if (env) await env.HEALTH_KV.put(`lastChecked:${backend}`, now);
       return false;
     }
     
@@ -224,17 +309,27 @@ async function checkBackendHealth(backend) {
     
     if (blockData.error) {
       console.error(`Block number check failed for ${backend}: RPC error: ${blockData.error.message}`);
+      // Update last checked time even if unhealthy
+      if (env) await env.HEALTH_KV.put(`lastChecked:${backend}`, now);
       return false;
     }
     
     const blockNumber = parseInt(blockData.result, 16);
     console.log(`Backend ${backend} is at block ${blockNumber}`);
     
+    // Store block height and last checked time in KV store
+    if (env) {
+      await env.HEALTH_KV.put(`blockHeight:${backend}`, blockNumber.toString());
+      await env.HEALTH_KV.put(`lastChecked:${backend}`, now);
+    }
+    
     // Node is healthy
     console.log(`Backend ${backend} is healthy`);
     return true;
   } catch (error) {
     console.error(`Health check failed for ${backend}: ${error.message}`);
+    // Update last checked time even if unhealthy
+    if (env) await env.HEALTH_KV.put(`lastChecked:${backend}`, now);
     return false;
   }
 }
