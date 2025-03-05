@@ -69,11 +69,14 @@ async function getHealthStatus(env) {
       const lastChecked = await env.HEALTH_KV.get(`lastChecked:${backend}`);
       const validatorAddress = await env.HEALTH_KV.get(`validator:${backend}`);
       
+      // Convert "null" string to actual null for the response
+      const actualValidatorAddress = validatorAddress === "null" ? null : validatorAddress;
+      
       const backendInfo = {
         url: backend,
         blockHeight: blockHeight ? parseInt(blockHeight) : null,
         lastChecked: lastChecked || null,
-        validatorAddress: validatorAddress || null
+        validatorAddress: actualValidatorAddress
       };
       
       if (isDown) {
@@ -213,11 +216,16 @@ async function fetchValidatorAddresses(env) {
             // Get the current value from KV
             const currentAddress = await env.HEALTH_KV.get(`validator:${url}`);
             
+            console.log(`Validator address for ${url}: Current=${currentAddress}, New=${address}`);
+            
+            // Make sure we're storing the address as a string, not null or undefined
+            const addressToStore = address ? address : "null";
+            
             // Only update if the address has changed
-            if (currentAddress !== address) {
-              await env.HEALTH_KV.put(`validator:${url}`, address);
+            if (currentAddress !== addressToStore) {
+              await env.HEALTH_KV.put(`validator:${url}`, addressToStore);
               updatedAddresses.push(url);
-              console.log(`Updated validator address for ${url}: ${address}`);
+              console.log(`Updated validator address for ${url}: ${addressToStore}`);
             }
           }
           
@@ -259,11 +267,13 @@ async function setNullValidatorAddresses(network, env) {
       // Get the current value from KV
       const currentAddress = await env.HEALTH_KV.get(`validator:${backend}`);
       
-      // Only update if the address is not already null
-      if (currentAddress !== null) {
-        await env.HEALTH_KV.put(`validator:${backend}`, null);
+      console.log(`Current validator address for ${backend}: ${currentAddress}`);
+      
+      // Only update if the address is not already "null" (as a string)
+      if (currentAddress !== "null") {
+        await env.HEALTH_KV.put(`validator:${backend}`, "null");
         updatedAddresses.push(backend);
-        console.log(`Set validator address for ${backend} to null`);
+        console.log(`Set validator address for ${backend} to "null"`);
       }
     } catch (error) {
       console.error(`Error setting null validator address for ${backend}:`, error.message);
