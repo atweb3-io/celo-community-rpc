@@ -214,12 +214,23 @@ The health check system consists of two components:
    - Verifies that backends are fully synced and responsive
    - Marks unhealthy backends in Cloudflare KV
 
+### Health Status Endpoint
+
+The health check system provides a public endpoint that shows the current health status of all backends:
+
+```
+https://health.celo-community.org/
+```
+
+This endpoint returns a JSON response with information about healthy and unhealthy backends for each network. It's useful for monitoring and debugging purposes.
+
 ### Benefits
 
 - **Improved Reliability**: Unhealthy backends are automatically excluded from the rotation
 - **Faster Response Times**: Requests are only sent to healthy backends
 - **Automatic Recovery**: Backends are automatically reinstated after the cooldown period
 - **Proactive Issue Detection**: Active health checks detect issues before they affect users
+- **Monitoring**: Public health status endpoint for monitoring and debugging
 
 ### Documentation
 
@@ -270,11 +281,15 @@ You can also run the update script manually:
 
 ## DNS Configuration
 
-For each network, you need to configure DNS records to point to your Cloudflare Workers:
+You need to configure DNS records to point to your Cloudflare Workers:
 
+### RPC Endpoints
 - `rpc.celo-community.org` → Mainnet Worker
 - `baklava-rpc.celo-community.org` → Baklava Worker
 - `alfajores-rpc.celo-community.org` → Alfajores Worker
+
+### Health Check Endpoint
+- `health.celo-community.org` → Health Check Worker
 
 This is handled automatically when using Cloudflare as your DNS provider and setting up the routes in the `wrangler.toml` files.
 

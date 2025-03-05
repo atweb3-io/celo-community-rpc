@@ -41,6 +41,46 @@ Active health checks are implemented as a separate scheduled worker (`health-che
    - If the backend is unhealthy, it marks it as down in the KV store
 3. The worker logs the results of the health checks
 
+### Health Check HTTP Endpoint
+
+The health check worker also provides an HTTP endpoint that returns the current health status of all backends. You can access this endpoint by visiting:
+
+```
+https://health.celo-community.org/
+```
+
+The response is a JSON object with the following structure:
+
+```json
+{
+  "timestamp": "2025-03-05T16:40:00.000Z",
+  "networks": {
+    "mainnet": {
+      "healthy": [
+        { "url": "https://forno.celo.org" }
+      ],
+      "unhealthy": [
+        { "url": "https://unhealthy-backend.example.com", "reason": "HTTP error: 502" }
+      ]
+    },
+    "baklava": {
+      "healthy": [
+        { "url": "https://baklava-forno.celo-testnet.org" }
+      ],
+      "unhealthy": []
+    },
+    "alfajores": {
+      "healthy": [
+        { "url": "https://alfajores-forno.celo-testnet.org" }
+      ],
+      "unhealthy": []
+    }
+  }
+}
+```
+
+This endpoint is useful for monitoring the health of the backends and can be integrated with monitoring systems.
+
 ### Health Check Criteria
 
 The active health check performs the following checks:

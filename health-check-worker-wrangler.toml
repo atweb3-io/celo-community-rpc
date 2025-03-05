@@ -1,6 +1,10 @@
 name = "celo-health-check"
 main = "health-check-worker.js"
 compatibility_date = "2023-01-01"
+account_id = "$CLOUDFLARE_ACCOUNT_ID"
+zone_id = "$CLOUDFLARE_ZONE_ID"
+workers_dev = false
+route = "health.celo-community.org/*"
 
 # KV namespace for tracking backend health status
 # This should be the same KV namespace used by the RPC workers

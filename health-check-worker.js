@@ -18,14 +18,67 @@ const NETWORKS = [
 ];
 
 /**
- * Main worker entry point - runs on a schedule
+ * Main worker entry point - runs on a schedule and handles HTTP requests
  */
 export default {
+  // Handle scheduled events (cron triggers)
   async scheduled(event, env, ctx) {
     console.log('Running scheduled health check');
     await checkAllBackends(env);
   },
+  
+  // Handle HTTP requests
+  async fetch(request, env, ctx) {
+    // Get the current health status
+    const results = await getHealthStatus(env);
+    
+    // Return the health status as JSON
+    return new Response(JSON.stringify(results, null, 2), {
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*',
+      },
+    });
+  },
 };
+
+/**
+ * Get the current health status of all backends
+ * @param {Object} env - Environment variables and bindings
+ * @returns {Promise<Object>} - Health status for all networks
+ */
+async function getHealthStatus(env) {
+  const results = {
+    timestamp: new Date().toISOString(),
+    networks: {}
+  };
+  
+  for (const network of NETWORKS) {
+    results.networks[network.name] = {
+      healthy: [],
+      unhealthy: []
+    };
+    
+    for (const backend of network.backends) {
+      // Check if the backend is marked as down
+      const isDown = await env.HEALTH_KV.get(`down:${backend}`);
+      const reason = isDown || null;
+      
+      if (isDown) {
+        results.networks[network.name].unhealthy.push({
+          url: backend,
+          reason: reason
+        });
+      } else {
+        results.networks[network.name].healthy.push({
+          url: backend
+        });
+      }
+    }
+  }
+  
+  return results;
+}
 
 /**
  * Check all backends for all networks

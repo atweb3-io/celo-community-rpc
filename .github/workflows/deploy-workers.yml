@@ -89,11 +89,13 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_ZONE_ID: ${{ secrets.CLOUDFLARE_ZONE_ID }}
           HEALTH_KV_ID: ${{ secrets.HEALTH_KV_ID }}
           HEALTH_KV_PREVIEW_ID: ${{ secrets.HEALTH_KV_PREVIEW_ID }}
         run: |
           # Replace environment variables in wrangler.toml
           sed -i "s/\$CLOUDFLARE_ACCOUNT_ID/${{ secrets.CLOUDFLARE_ACCOUNT_ID }}/g" health-check-worker-wrangler.toml
+          sed -i "s/\$CLOUDFLARE_ZONE_ID/${{ secrets.CLOUDFLARE_ZONE_ID }}/g" health-check-worker-wrangler.toml
           sed -i "s/\$HEALTH_KV_ID/$HEALTH_KV_ID/g" health-check-worker-wrangler.toml
           sed -i "s/\$HEALTH_KV_PREVIEW_ID/$HEALTH_KV_PREVIEW_ID/g" health-check-worker-wrangler.toml
           
