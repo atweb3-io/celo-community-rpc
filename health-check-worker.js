@@ -195,17 +195,23 @@ async function fetchValidatorAddresses(env) {
           }
         }
         
-        // If we couldn't get from __STATIC_CONTENT, try fetching from the same origin
+        // If we couldn't get from STATIC_CONTENT_KV, we'll have to fall back to null addresses
+        // The validator-addresses.json files should be in the KV store
         if (!validatorAddresses) {
-          const validatorAddressesPath = `./${network.name}/validator-addresses.json`;
-          // Use fetch to get the file from the same origin
-          const response = await fetch(new URL(validatorAddressesPath, self.location.href));
+          console.warn(`Could not find validator addresses for ${network.name} in KV store`);
           
-          if (response.ok) {
-            validatorAddresses = await response.json();
-          } else {
-            console.warn(`Could not load validator addresses for ${network.name}: ${response.status} ${response.statusText}`);
+          // For debugging purposes, let's log what keys are available in the STATIC_CONTENT_KV namespace
+          if (env.STATIC_CONTENT_KV) {
+            try {
+              const allKeys = await env.STATIC_CONTENT_KV.list();
+              console.log(`Available keys in STATIC_CONTENT_KV:`, JSON.stringify(allKeys));
+            } catch (listError) {
+              console.warn(`Error listing keys in STATIC_CONTENT_KV:`, listError.message);
+            }
           }
+          
+          // We'll have to fall back to null addresses
+          console.warn(`Falling back to null addresses for ${network.name}`);
         }
         
         if (validatorAddresses) {
