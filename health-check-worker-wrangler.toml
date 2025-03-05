@@ -11,3 +11,7 @@ kv_namespaces = [
 # Run the health check every 5 minutes
 [triggers]
 crons = ["*/5 * * * *"]
+
+[observability]
+enabled = true
+head_sampling_rate = 1 # optional. default = 1.
