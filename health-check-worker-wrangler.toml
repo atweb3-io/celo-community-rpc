@@ -10,7 +10,7 @@ route = "health.celo-community.org/*"
 # This should be the same KV namespace used by the RPC workers
 kv_namespaces = [
   { binding = "HEALTH_KV", id = "$HEALTH_KV_ID", preview_id = "$HEALTH_KV_PREVIEW_ID" },
-  { binding = "__STATIC_CONTENT", id = "$STATIC_CONTENT_KV_ID", preview_id = "$STATIC_CONTENT_KV_PREVIEW_ID" }
+  { binding = "STATIC_CONTENT_KV", id = "$STATIC_CONTENT_KV_ID", preview_id = "$STATIC_CONTENT_KV_PREVIEW_ID" }
 ]
 
 # Include validator-addresses.json files as assets

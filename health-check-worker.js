@@ -177,15 +177,15 @@ async function fetchValidatorAddresses(env) {
         const kvKey = `${network.name}/validator-addresses`;
         let validatorAddresses = null;
         
-        // First try to get from the __STATIC_CONTENT KV namespace (if available)
-        if (env.__STATIC_CONTENT) {
+        // First try to get from the STATIC_CONTENT_KV namespace (if available)
+        if (env.STATIC_CONTENT_KV) {
           // List keys to find the hashed filename
-          const keys = await env.__STATIC_CONTENT.list({ prefix: `${network.name}/validator-addresses` });
+          const keys = await env.STATIC_CONTENT_KV.list({ prefix: `${network.name}/validator-addresses` });
           if (keys && keys.keys && keys.keys.length > 0) {
             // Get the first matching key (should be the hashed filename)
             const key = keys.keys[0].name;
-            console.log(`Found validator addresses in __STATIC_CONTENT at key: ${key}`);
-            const content = await env.__STATIC_CONTENT.get(key, { type: 'text' });
+            console.log(`Found validator addresses in STATIC_CONTENT_KV at key: ${key}`);
+            const content = await env.STATIC_CONTENT_KV.get(key, { type: 'text' });
             if (content) {
               validatorAddresses = JSON.parse(content);
             }

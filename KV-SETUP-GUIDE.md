@@ -9,6 +9,7 @@ This guide explains how to set up a Cloudflare KV namespace for static content a
 3. In the navigation menu, click on "KV"
 4. Click the "Create namespace" button
 5. Enter a name for your namespace (e.g., `celo-health-check-static-content`)
+   - Note: Do NOT use `__STATIC_CONTENT` as this is reserved by Cloudflare Workers Sites
 6. Click "Add" to create the namespace
 
 ## 2. Get the KV Namespace IDs
