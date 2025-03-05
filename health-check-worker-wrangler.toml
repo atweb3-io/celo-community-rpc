@@ -14,8 +14,7 @@ kv_namespaces = [
 
 # Include validator-addresses.json files as assets
 [[site]]
-bucket = "."
-include = ["*/validator-addresses.json"]
+bucket = "./site"
 
 # Run the health check every 5 minutes
 [triggers]

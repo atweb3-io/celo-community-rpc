@@ -93,16 +93,15 @@ jobs:
           HEALTH_KV_ID: ${{ secrets.HEALTH_KV_ID }}
           HEALTH_KV_PREVIEW_ID: ${{ secrets.HEALTH_KV_PREVIEW_ID }}
         run: |
-          # Create a temporary directory for the health check worker
-          mkdir -p health-check-worker-temp
-          cp health-check-worker.js health-check-worker-temp/
+          # Create a site directory for the health check worker
+          mkdir -p site
           
-          # Copy validator-addresses.json files to the health check worker directory
+          # Copy validator-addresses.json files to the site directory
           for network in mainnet baklava alfajores; do
             if [ -f "$network/validator-addresses.json" ]; then
-              mkdir -p health-check-worker-temp/$network
-              cp $network/validator-addresses.json health-check-worker-temp/$network/
-              echo "Copied $network/validator-addresses.json to health-check-worker-temp/$network/"
+              mkdir -p site/$network
+              cp $network/validator-addresses.json site/$network/
+              echo "Copied $network/validator-addresses.json to site/$network/"
             else
               echo "Warning: $network/validator-addresses.json not found"
             fi
@@ -114,6 +113,5 @@ jobs:
           sed -i "s/\$HEALTH_KV_ID/$HEALTH_KV_ID/g" health-check-worker-wrangler.toml
           sed -i "s/\$HEALTH_KV_PREVIEW_ID/$HEALTH_KV_PREVIEW_ID/g" health-check-worker-wrangler.toml
           
-          # Deploy the health check worker from the temporary directory
-          cd health-check-worker-temp
-          wrangler deploy -c ../health-check-worker-wrangler.toml
+          # Deploy the health check worker
+          wrangler deploy -c health-check-worker-wrangler.toml
