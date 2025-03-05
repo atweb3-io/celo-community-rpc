@@ -180,19 +180,29 @@ async function fetchValidatorAddresses(env) {
         const kvKey = `${network.name}/validator-addresses`;
         let validatorAddresses = null;
         
-        // First try to get from the STATIC_CONTENT_KV namespace (if available)
+        // Try to get from the STATIC_CONTENT_KV namespace (if available)
         if (env.STATIC_CONTENT_KV) {
-          // List keys to find the hashed filename
-          const keys = await env.STATIC_CONTENT_KV.list({ prefix: `${network.name}/validator-addresses` });
-          if (keys && keys.keys && keys.keys.length > 0) {
-            // Get the first matching key (should be the hashed filename)
-            const key = keys.keys[0].name;
-            console.log(`Found validator addresses in STATIC_CONTENT_KV at key: ${key}`);
+          try {
+            // Get the validator addresses directly from the KV store
+            const key = `${network.name}/validator-addresses.json`;
+            console.log(`Trying to get validator addresses from STATIC_CONTENT_KV with key: ${key}`);
+            
             const content = await env.STATIC_CONTENT_KV.get(key, { type: 'text' });
             if (content) {
+              console.log(`Found validator addresses in STATIC_CONTENT_KV for ${network.name}`);
               validatorAddresses = JSON.parse(content);
+            } else {
+              console.warn(`No content found in STATIC_CONTENT_KV for key: ${key}`);
+              
+              // For debugging, list all keys in the KV store
+              const allKeys = await env.STATIC_CONTENT_KV.list();
+              console.log(`Available keys in STATIC_CONTENT_KV:`, JSON.stringify(allKeys));
             }
+          } catch (kvError) {
+            console.error(`Error getting validator addresses from STATIC_CONTENT_KV:`, kvError.message);
           }
+        } else {
+          console.warn(`STATIC_CONTENT_KV binding not available`);
         }
         
         // If we couldn't get from STATIC_CONTENT_KV, we'll have to fall back to null addresses

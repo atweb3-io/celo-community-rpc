@@ -104,6 +104,16 @@ jobs:
               mkdir -p site/$network
               cp $network/validator-addresses.json site/$network/
               echo "Copied $network/validator-addresses.json to site/$network/"
+              
+              # Also upload validator addresses directly to the KV store
+              echo "Uploading validator addresses for $network to STATIC_CONTENT_KV..."
+              
+              # Install jq for JSON processing
+              apt-get update && apt-get install -y jq
+              
+              # Upload the entire validator-addresses.json file to the STATIC_CONTENT_KV namespace
+              echo "Uploading $network/validator-addresses.json to STATIC_CONTENT_KV"
+              wrangler kv:key put --binding=STATIC_CONTENT_KV "$network/validator-addresses.json" "$(cat $network/validator-addresses.json)"
             else
               echo "Warning: $network/validator-addresses.json not found"
             fi
