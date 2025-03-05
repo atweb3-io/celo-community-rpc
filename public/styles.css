@@ -485,6 +485,163 @@ footer {
     opacity: 1;
 }
 
+/* Health Status Styles */
+.health-status-container {
+    margin-bottom: var(--spacing-lg);
+}
+
+.health-status-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-md);
+}
+
+.health-status-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+}
+
+.last-updated {
+    font-size: 0.85rem;
+    color: var(--text-light);
+}
+
+.refresh-btn {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: var(--border-radius-sm);
+    padding: var(--spacing-xs) var(--spacing-sm);
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: background-color var(--transition-fast);
+}
+
+.refresh-btn:hover {
+    background-color: var(--primary-dark);
+}
+
+.health-status-content {
+    min-height: 200px;
+}
+
+.health-status-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 200px;
+    color: var(--text-light);
+}
+
+.spinner {
+    border: 3px solid rgba(0, 0, 0, 0.1);
+    border-radius: 50%;
+    border-top: 3px solid var(--primary-color);
+    width: 30px;
+    height: 30px;
+    animation: spin 1s linear infinite;
+    margin-bottom: var(--spacing-md);
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.health-network {
+    margin-bottom: var(--spacing-lg);
+}
+
+.health-network-header {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-sm);
+}
+
+.health-network-name {
+    font-weight: 600;
+    font-size: 1.1rem;
+    margin: 0;
+}
+
+.health-status-badge {
+    font-size: 0.75rem;
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border-radius: var(--border-radius-sm);
+    background-color: var(--primary-color);
+    color: white;
+}
+
+.health-status-badge.unhealthy {
+    background-color: #E74C3C;
+}
+
+.health-servers {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(450px, 1fr));
+    gap: var(--spacing-md);
+}
+
+.health-server-card {
+    background-color: var(--background-color);
+    border-radius: var(--border-radius-md);
+    padding: var(--spacing-md);
+    border: 1px solid var(--border-color);
+}
+
+.health-server-card.unhealthy {
+    border-color: #E74C3C;
+}
+
+.health-server-url {
+    font-family: monospace;
+    font-size: 0.9rem;
+    word-break: break-all;
+    margin-bottom: var(--spacing-sm);
+    font-weight: 600;
+}
+
+.health-server-details {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--spacing-sm);
+    font-size: 0.85rem;
+}
+
+/* Make validator address cell take full width */
+.health-server-detail:nth-child(3) {
+    grid-column: 1 / -1;
+}
+
+.health-server-detail {
+    display: flex;
+    flex-direction: column;
+}
+
+.health-detail-label {
+    color: var(--text-light);
+    margin-bottom: 2px;
+}
+
+.health-detail-value {
+    font-weight: 500;
+}
+
+.health-server-reason {
+    margin-top: var(--spacing-sm);
+    padding-top: var(--spacing-sm);
+    border-top: 1px solid var(--border-color);
+    font-size: 0.85rem;
+    color: #E74C3C;
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
     h1 {
@@ -500,6 +657,21 @@ footer {
     }
     
     .usage-examples {
+        grid-template-columns: 1fr;
+    }
+    
+    .health-status-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--spacing-sm);
+    }
+    
+    .health-status-actions {
+        width: 100%;
+        justify-content: space-between;
+    }
+    
+    .health-servers {
         grid-template-columns: 1fr;
     }
 }
@@ -526,5 +698,18 @@ footer {
     
     .usage-example {
         background-color: #1A1D1F;
+    }
+    
+    .health-server-card {
+        background-color: #1A1D1F;
+    }
+    
+    .spinner {
+        border-color: rgba(255, 255, 255, 0.1);
+        border-top-color: var(--primary-color);
+    }
+    
+    .health-server-reason {
+        border-top-color: #3E454D;
     }
 }

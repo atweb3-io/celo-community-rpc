@@ -7,6 +7,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         'baklava': 'Baklava'
     };
     
+    // Health check endpoint URL
+    const HEALTH_CHECK_URL = 'https://health.celo-community.org/';
+    
     // Load network data from separate files
     const networks = {};
     
@@ -45,6 +48,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Initialize the UI after loading network data
     initializeUI();
+    
+    // Fetch health status data
+    await fetchHealthStatus();
 
     /**
      * Initialize the UI components
@@ -58,6 +64,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         
         // Set up copy buttons
         setupCopyButtons();
+        
+        // Set up refresh button for health status
+        setupHealthStatusRefresh();
     }
 
     /**
@@ -272,6 +281,180 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             });
         });
+    }
+
+    /**
+     * Set up the refresh button for health status
+     */
+    function setupHealthStatusRefresh() {
+        const refreshButton = document.getElementById('refresh-health-btn');
+        if (refreshButton) {
+            refreshButton.addEventListener('click', async () => {
+                await fetchHealthStatus();
+            });
+        }
+    }
+
+    /**
+     * Fetch health status data from the health check endpoint
+     */
+    async function fetchHealthStatus() {
+        const healthStatusContent = document.getElementById('health-status-content');
+        const lastUpdatedElement = document.getElementById('health-last-updated');
+        
+        if (!healthStatusContent) return;
+        
+        // Show loading state
+        healthStatusContent.innerHTML = `
+            <div class="health-status-loading">
+                <div class="spinner"></div>
+                <p>Loading health status...</p>
+            </div>
+        `;
+        
+        try {
+            // Fetch health status data
+            const response = await fetch(HEALTH_CHECK_URL);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            
+            // Update last updated time
+            if (lastUpdatedElement) {
+                const now = new Date();
+                lastUpdatedElement.textContent = now.toLocaleTimeString();
+            }
+            
+            // Display health status data
+            displayHealthStatus(data, healthStatusContent);
+            
+        } catch (error) {
+            console.error('Error fetching health status:', error);
+            
+            // Show error message
+            healthStatusContent.innerHTML = `
+                <div class="health-status-error">
+                    <p>Error loading health status: ${error.message}</p>
+                    <button id="retry-health-btn" class="refresh-btn">Retry</button>
+                </div>
+            `;
+            
+            // Add event listener to retry button
+            const retryButton = document.getElementById('retry-health-btn');
+            if (retryButton) {
+                retryButton.addEventListener('click', async () => {
+                    await fetchHealthStatus();
+                });
+            }
+        }
+    }
+    
+    /**
+     * Display health status data
+     * @param {Object} data - Health status data
+     * @param {HTMLElement} container - Container element to display the data
+     */
+    function displayHealthStatus(data, container) {
+        if (!data || !data.networks || !container) return;
+        
+        // Create HTML content
+        let html = '';
+        
+        // Process each network
+        for (const [networkId, networkData] of Object.entries(data.networks)) {
+            const healthyServers = networkData.healthy || [];
+            const unhealthyServers = networkData.unhealthy || [];
+            const totalServers = healthyServers.length + unhealthyServers.length;
+            const healthyCount = healthyServers.length;
+            
+            html += `
+                <div class="health-network">
+                    <div class="health-network-header">
+                        <h4 class="health-network-name">${networkNames[networkId] || networkId}</h4>
+                        <span class="health-status-badge ${unhealthyServers.length > 0 ? 'unhealthy' : ''}">
+                            ${healthyCount}/${totalServers} Healthy
+                        </span>
+                    </div>
+                    <div class="health-servers">
+            `;
+            
+            // Add healthy servers
+            healthyServers.forEach(server => {
+                html += createServerCard(server, false);
+            });
+            
+            // Add unhealthy servers
+            unhealthyServers.forEach(server => {
+                html += createServerCard(server, true);
+            });
+            
+            html += `
+                    </div>
+                </div>
+            `;
+        }
+        
+        // Update container
+        container.innerHTML = html;
+    }
+    
+    /**
+     * Create a server card HTML
+     * @param {Object} server - Server data
+     * @param {boolean} isUnhealthy - Whether the server is unhealthy
+     * @returns {string} - HTML for the server card
+     */
+    function createServerCard(server, isUnhealthy) {
+        const { url, blockHeight, lastChecked, validatorAddress, reason } = server;
+        
+        // Format block height
+        const formattedBlockHeight = blockHeight ? blockHeight.toLocaleString() : 'N/A';
+        
+        // Format last checked time
+        let formattedLastChecked = 'N/A';
+        if (lastChecked) {
+            try {
+                const date = new Date(lastChecked);
+                formattedLastChecked = date.toLocaleString();
+            } catch (error) {
+                formattedLastChecked = lastChecked;
+            }
+        }
+        
+        // Format validator address
+        const formattedValidatorAddress = validatorAddress || 'N/A';
+        
+        return `
+            <div class="health-server-card ${isUnhealthy ? 'unhealthy' : ''}">
+                <div class="health-server-url">${url}</div>
+                <div class="health-server-details">
+                    <div class="health-server-detail">
+                        <span class="health-detail-label">Block Height</span>
+                        <span class="health-detail-value">${formattedBlockHeight}</span>
+                    </div>
+                    <div class="health-server-detail">
+                        <span class="health-detail-label">Last Checked</span>
+                        <span class="health-detail-value">${formattedLastChecked}</span>
+                    </div>
+                    <div class="health-server-detail">
+                        <span class="health-detail-label">Validator</span>
+                        <span class="health-detail-value" title="${formattedValidatorAddress}">
+                            ${formattedValidatorAddress}
+                        </span>
+                    </div>
+                    <div class="health-server-detail">
+                        <span class="health-detail-label">Status</span>
+                        <span class="health-detail-value ${isUnhealthy ? 'status-error' : 'status-good'}">
+                            ${isUnhealthy ? 'Unhealthy' : 'Healthy'}
+                        </span>
+                    </div>
+                </div>
+                ${reason ? `<div class="health-server-reason">Reason: ${reason}</div>` : ''}
+            </div>
+        `;
     }
 
     /**
