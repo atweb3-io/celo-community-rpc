@@ -171,15 +171,41 @@ async function fetchValidatorAddresses(env) {
     try {
       console.log(`Fetching validator addresses for ${network.name}...`);
       
-      // Try to fetch the validator-addresses.json file for this network
+      // Try to fetch the validator addresses from the KV store directly
       try {
-        const validatorAddressesPath = `./${network.name}/validator-addresses.json`;
-        // Use fetch to get the file from the same origin
-        const response = await fetch(new URL(validatorAddressesPath, self.location.href));
+        // Check if we have the validator addresses in the KV store
+        const kvKey = `${network.name}/validator-addresses`;
+        let validatorAddresses = null;
         
-        if (response.ok) {
-          const validatorAddresses = await response.json();
+        // First try to get from the __STATIC_CONTENT KV namespace (if available)
+        if (env.__STATIC_CONTENT) {
+          // List keys to find the hashed filename
+          const keys = await env.__STATIC_CONTENT.list({ prefix: `${network.name}/validator-addresses` });
+          if (keys && keys.keys && keys.keys.length > 0) {
+            // Get the first matching key (should be the hashed filename)
+            const key = keys.keys[0].name;
+            console.log(`Found validator addresses in __STATIC_CONTENT at key: ${key}`);
+            const content = await env.__STATIC_CONTENT.get(key, { type: 'text' });
+            if (content) {
+              validatorAddresses = JSON.parse(content);
+            }
+          }
+        }
+        
+        // If we couldn't get from __STATIC_CONTENT, try fetching from the same origin
+        if (!validatorAddresses) {
+          const validatorAddressesPath = `./${network.name}/validator-addresses.json`;
+          // Use fetch to get the file from the same origin
+          const response = await fetch(new URL(validatorAddressesPath, self.location.href));
           
+          if (response.ok) {
+            validatorAddresses = await response.json();
+          } else {
+            console.warn(`Could not load validator addresses for ${network.name}: ${response.status} ${response.statusText}`);
+          }
+        }
+        
+        if (validatorAddresses) {
           // Check if we need to update the KV store by comparing with existing values
           const updatedAddresses = [];
           
@@ -203,7 +229,7 @@ async function fetchValidatorAddresses(env) {
           
           console.log(`Successfully processed validator addresses for ${network.name}`);
         } else {
-          console.warn(`Could not load validator addresses for ${network.name}: ${response.status} ${response.statusText}`);
+          console.warn(`Could not find validator addresses for ${network.name}`);
           // Fall back to using null addresses
           await setNullValidatorAddresses(network, env);
         }

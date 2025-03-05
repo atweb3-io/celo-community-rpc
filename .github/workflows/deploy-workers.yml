@@ -92,6 +92,8 @@ jobs:
           CLOUDFLARE_ZONE_ID: ${{ secrets.CLOUDFLARE_ZONE_ID }}
           HEALTH_KV_ID: ${{ secrets.HEALTH_KV_ID }}
           HEALTH_KV_PREVIEW_ID: ${{ secrets.HEALTH_KV_PREVIEW_ID }}
+          STATIC_CONTENT_KV_ID: ${{ secrets.STATIC_CONTENT_KV_ID }}
+          STATIC_CONTENT_KV_PREVIEW_ID: ${{ secrets.STATIC_CONTENT_KV_PREVIEW_ID }}
         run: |
           # Create a site directory for the health check worker
           mkdir -p site
@@ -112,6 +114,8 @@ jobs:
           sed -i "s/\$CLOUDFLARE_ZONE_ID/${{ secrets.CLOUDFLARE_ZONE_ID }}/g" health-check-worker-wrangler.toml
           sed -i "s/\$HEALTH_KV_ID/$HEALTH_KV_ID/g" health-check-worker-wrangler.toml
           sed -i "s/\$HEALTH_KV_PREVIEW_ID/$HEALTH_KV_PREVIEW_ID/g" health-check-worker-wrangler.toml
+          sed -i "s/\$STATIC_CONTENT_KV_ID/$STATIC_CONTENT_KV_ID/g" health-check-worker-wrangler.toml
+          sed -i "s/\$STATIC_CONTENT_KV_PREVIEW_ID/$STATIC_CONTENT_KV_PREVIEW_ID/g" health-check-worker-wrangler.toml
           
           # Deploy the health check worker
           wrangler deploy -c health-check-worker-wrangler.toml
