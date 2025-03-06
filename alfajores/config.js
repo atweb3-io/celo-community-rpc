@@ -62,12 +62,123 @@ async function getHealthyBackends(env) {
     globalThis.UNHEALTHY_BACKENDS = new Map();
   }
   
-  globalThis.UNHEALTHY_BACKENDS.set(backend, {
-    reason,
-    timestamp: Date.now()
-  });
+  // Initialize with globalThis storage if we don't have a cache
+  if (!inMemoryUnhealthyBackends) {
+    inMemoryUnhealthyBackends = globalThis.UNHEALTHY_BACKENDS;
+    storageType = "globalThis";
+  }
   
-  console.log(`Stored unhealthy backend ${backend} in globalThis storage: ${reason}`);
+  // Sync from KV to in-memory storage if KV is available
+  try {
+    if (env && env.HEALTH_KV) {
+      await syncUnhealthyBackendsFromKV(env, inMemoryUnhealthyBackends);
+    }
+  } catch (syncError) {
+    console.warn(`Error syncing from KV: ${syncError.message}`);
+  }
+  
+  // Filter out backends that are marked as unhealthy
+  for (const backend of backendList) {
+    const unhealthyInfo = inMemoryUnhealthyBackends.get(backend);
+    
+    if (!unhealthyInfo) {
+      // Backend is not in the unhealthy list, so it's healthy
+      healthyBackends.push(backend);
+      continue;
+    }
+    
+    // Check if the cooldown period has passed
+    const now = Date.now();
+    const timeSinceMarked = now - unhealthyInfo.timestamp;
+    
+    if (timeSinceMarked > HEALTH_CHECK_COOLDOWN_MS) {
+      // Cooldown period has passed, consider it healthy again
+      inMemoryUnhealthyBackends.delete(backend);
+      healthyBackends.push(backend);
+      console.log(`Backend ${backend} cooldown period passed, marking as healthy again`);
+    } else {
+      // Still in cooldown period, keep it marked as unhealthy
+      console.log(`Backend ${backend} still in cooldown period (${Math.round((HEALTH_CHECK_COOLDOWN_MS - timeSinceMarked) / 1000)}s remaining)`);
+    }
+  }
+  
+  // If all backends are unhealthy, use all backends as a fallback
+  if (healthyBackends.length === 0) {
+    console.warn('All backends are marked as unhealthy! Using all backends as fallback.');
+    return [...backendList];
+  }
+  
+  console.log(`Using ${healthyBackends.length} healthy backends out of ${backendList.length} total`);
+  return healthyBackends;
+}
+
+/**
+ * Mark a backend as unhealthy
+ * @param {Object} env - Environment variables and bindings
+ * @param {string} backend - The backend URL to mark as unhealthy
+ * @param {string} reason - The reason for marking as unhealthy
+ * @returns {Promise<void>}
+ */
+async function markBackendUnhealthy(env, backend, reason) {
+  console.log(`Marking backend ${backend} as unhealthy: ${reason}`);
+  
+  // Store in KV if available
+  if (env && env.HEALTH_KV) {
+    try {
+      await env.HEALTH_KV.put(`down:${backend}`, reason, { expirationTtl: Math.floor(HEALTH_CHECK_COOLDOWN_MS / 1000) });
+      console.log(`Stored unhealthy backend ${backend} in KV: ${reason}`);
+    } catch (kvError) {
+      console.error(`Error storing unhealthy backend in KV: ${kvError.message}`);
+    }
+  }
+  
+  // Store in in-memory cache
+  try {
+    // Try to use Cache API first
+    if (typeof caches !== 'undefined' && caches.default) {
+      try {
+        const cache = caches.default;
+        const cacheKey = new Request('https://internal.celo-community.org/unhealthy-backends');
+        let cacheResponse = await cache.match(cacheKey);
+        
+        let cacheData = {};
+        if (cacheResponse) {
+          cacheData = await cacheResponse.json();
+        }
+        
+        cacheData[backend] = {
+          reason,
+          timestamp: Date.now()
+        };
+        
+        const newResponse = new Response(JSON.stringify(cacheData), {
+          headers: { 'Content-Type': 'application/json' }
+        });
+        
+        await cache.put(cacheKey, newResponse);
+        console.log(`Stored unhealthy backend ${backend} in cache: ${reason}`);
+      } catch (cacheError) {
+        console.warn(`Error using Cache API: ${cacheError.message}, falling back to globalThis`);
+      }
+    }
+    
+    // Fall back to globalThis
+    if (typeof globalThis.UNHEALTHY_BACKENDS === 'undefined') {
+      globalThis.UNHEALTHY_BACKENDS = new Map();
+    }
+    
+    globalThis.UNHEALTHY_BACKENDS.set(backend, {
+      reason,
+      timestamp: Date.now()
+    });
+    
+    console.log(`Stored unhealthy backend ${backend} in globalThis storage: ${reason}`);
+  } catch (error) {
+    console.error(`Error marking backend as unhealthy: ${error.message}`);
+  }
+  
+  // Purge health cache to ensure health status page is updated
+  await purgeHealthCache(env);
 }
 
 /**
@@ -119,9 +230,10 @@ async function syncUnhealthyBackendsFromKV(env, inMemoryStorage) {
 
 /**
  * Purge the health endpoint cache
+ * @param {Object} env - Environment variables and bindings
  * @returns {Promise<void>}
  */
-async function purgeHealthCache() {
+async function purgeHealthCache(env) {
   try {
     // Check if we're in a Cloudflare Worker environment with cache API
     if (typeof caches !== 'undefined' && caches.default) {
