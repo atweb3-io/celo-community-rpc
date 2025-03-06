@@ -346,6 +346,17 @@ document.addEventListener('DOMContentLoaded', async () => {
                         lastUpdatedElement.textContent += ` | Generated: ${generatedTime.toLocaleTimeString()}`;
                     }
                     
+                    // If there's a served timestamp (from cache), show it
+                    if (data.served) {
+                        const servedTime = new Date(data.served);
+                        lastUpdatedElement.textContent += ` | Served: ${servedTime.toLocaleTimeString()}`;
+                        
+                        // Show if this was a cached response
+                        if (data.cached) {
+                            lastUpdatedElement.textContent += ` (cached)`;
+                        }
+                    }
+                    
                     // Show fetch time
                     lastUpdatedElement.textContent += ` | Fetched: ${now.toLocaleTimeString()}`;
                 } else {
