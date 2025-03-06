@@ -85,6 +85,10 @@ export default {
     
     // Check for cache control headers - only respect no-cache for manual refresh requests
     const cacheControl = request.headers.get('Cache-Control');
+    const ifNoneMatch = request.headers.get('If-None-Match');
+    const ifModifiedSince = request.headers.get('If-Modified-Since');
+    
+    // Determine if this is a force refresh request
     const noCache = cacheControl &&
                    (cacheControl.includes('no-cache') ||
                     cacheControl.includes('max-age=0'));
@@ -95,31 +99,75 @@ export default {
     
     // Construct the cache key from the request URL
     const cacheUrl = new URL(request.url);
-    const cacheKey = new Request(cacheUrl.toString(), request);
+    // Create a clean cache key without headers that might affect caching
+    const cacheKey = new Request(cacheUrl.toString());
     
     // Try to get the Cloudflare cache
     let cachedResponse = null;
     
-    try {
-      // Get the Cloudflare cache
-      const cache = caches.default;
-      
-      // If this is a force refresh request, skip the cache
-      if (!noCache && cache) {
-        // Try to get the response from Cloudflare's cache
-        cachedResponse = await cache.match(cacheKey);
+    // Only try to use the cache if this is not a force refresh request
+    if (!noCache) {
+      try {
+        // Get the Cloudflare cache
+        const cache = caches.default;
         
-        if (cachedResponse) {
-          console.log(`Cache hit for: ${request.url}`);
-          return cachedResponse;
+        if (cache) {
+          // Try to get the response from Cloudflare's cache
+          cachedResponse = await cache.match(cacheKey);
+          
+          if (cachedResponse) {
+            console.log(`Cache hit for: ${request.url}`);
+            
+            // Handle conditional requests (If-None-Match, If-Modified-Since)
+            if (ifNoneMatch || ifModifiedSince) {
+              const cachedEtag = cachedResponse.headers.get('ETag');
+              const cachedLastModified = cachedResponse.headers.get('Last-Modified');
+              
+              // If ETag matches, return 304 Not Modified
+              if (ifNoneMatch && cachedEtag && ifNoneMatch === cachedEtag) {
+                return new Response(null, {
+                  status: 304,
+                  headers: {
+                    'ETag': cachedEtag,
+                    'Cache-Control': `public, max-age=${CACHE_TTL_SECONDS}`,
+                    ...getCorsHeaders(),
+                    'Last-Modified': cachedLastModified || new Date().toUTCString()
+                  }
+                });
+              }
+              
+              // If Last-Modified matches, return 304 Not Modified
+              if (ifModifiedSince && cachedLastModified) {
+                const ifModifiedSinceDate = new Date(ifModifiedSince);
+                const lastModifiedDate = new Date(cachedLastModified);
+                
+                if (ifModifiedSinceDate >= lastModifiedDate) {
+                  return new Response(null, {
+                    status: 304,
+                    headers: {
+                      'ETag': cachedEtag || `"${new Date().toISOString()}"`,
+                      'Cache-Control': `public, max-age=${CACHE_TTL_SECONDS}`,
+                      ...getCorsHeaders(),
+                      'Last-Modified': cachedLastModified
+                    }
+                  });
+                }
+              }
+            }
+            
+            // Return the cached response
+            return cachedResponse;
+          }
+          
+          console.log(`Cache miss for: ${request.url}`);
+        } else {
+          console.log(`Cloudflare cache not available`);
         }
-        
-        console.log(`Cache miss for: ${request.url}`);
-      } else {
-        console.log(`Bypassing cache for: ${request.url} due to no-cache header or cache unavailable`);
+      } catch (error) {
+        console.error(`Error accessing Cloudflare cache:`, error);
       }
-    } catch (error) {
-      console.error(`Error accessing Cloudflare cache:`, error);
+    } else {
+      console.log(`Bypassing cache for: ${request.url} due to no-cache header`);
     }
     
     // Get the current health status from our KV store
@@ -127,26 +175,30 @@ export default {
     
     // Create ETag from the timestamp
     const etag = `"${results.timestamp}"`;
+    const lastModified = new Date(results.timestamp).toUTCString();
     
     // Create a new response with appropriate headers
     const response = new Response(JSON.stringify(results, null, 2), {
       headers: {
         'Content-Type': 'application/json',
         ...getCorsHeaders(),
-        'Cache-Control': `public, s-maxage=${CACHE_TTL_SECONDS}`, // s-maxage for CDN caching
+        'Cache-Control': `public, max-age=${CACHE_TTL_SECONDS}, s-maxage=${CACHE_TTL_SECONDS}`, // Both browser and CDN caching
         'ETag': etag,
-        'Last-Modified': new Date(results.timestamp).toUTCString(),
+        'Last-Modified': lastModified,
         'Vary': 'Accept-Encoding, Origin', // Vary header to ensure proper caching with different encodings
-        'Cache-Tag': 'health-status', // For purging by tag if needed
       },
     });
     
-    // Store the response in Cloudflare's cache
+    // Store the response in Cloudflare's cache, but only if not a force refresh request
     if (!noCache) {
       try {
         const cache = caches.default;
         if (cache) {
-          ctx.waitUntil(cache.put(cacheKey, response.clone()));
+          // Use a clean cache key (without headers) for consistent caching
+          const cleanCacheKey = new Request(cacheUrl.toString());
+          
+          // Store in cache with waitUntil to not block the response
+          ctx.waitUntil(cache.put(cleanCacheKey, response.clone()));
           console.log(`Cached response for: ${request.url}`);
         } else {
           console.warn('Cloudflare cache not available, skipping cache storage');
@@ -177,13 +229,18 @@ async function getHealthStatus(env) {
       // Try to get the cached health status from KV
       cachedHealthStatus = await env.HEALTH_KV.get('health_status_cache', { type: 'json' });
       
-      // If we have a valid cached response, return it
+      // If we have a valid cached response, return it with updated metadata
       if (cachedHealthStatus) {
-        // Only update the generated timestamp to show when this was served
+        // Add metadata to explain the timestamps
         return {
           ...cachedHealthStatus,
           cached: true,
-          served: now.toISOString()
+          served: now.toISOString(),
+          _metadata: {
+            timestamp_info: "When the health data was last collected during scheduled check",
+            generated_info: "When the response was originally generated",
+            served_info: "When this cached response was served"
+          }
         };
       }
       
@@ -207,8 +264,12 @@ async function getHealthStatus(env) {
   }
   
   const results = {
-    timestamp: timestamp,
-    generated: now.toISOString(),
+    timestamp: timestamp,  // When the health data was last collected during scheduled check
+    generated: now.toISOString(),  // When this response was generated
+    _metadata: {
+      timestamp_info: "When the health data was last collected during scheduled check",
+      generated_info: "When this response was generated"
+    },
     networks: {}
   };
   
