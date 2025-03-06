@@ -26,14 +26,23 @@ export default {
   async scheduled(event, env, ctx) {
     console.log('Running scheduled health check');
     
-    // Clear the cached health status in KV to force regeneration
-    await env.HEALTH_KV.delete('health_status_cache');
-    console.log('Cleared KV cached health status');
-    
-    // Update the health status timestamp when running the scheduled check
-    const newTimestamp = new Date().toISOString();
-    await env.HEALTH_KV.put('health_status_timestamp', newTimestamp, { expirationTtl: 300 });
-    console.log(`Updated health status timestamp to ${newTimestamp}`);
+    // Check if KV store is available
+    if (env && env.HEALTH_KV) {
+      try {
+        // Clear the cached health status in KV to force regeneration
+        await env.HEALTH_KV.delete('health_status_cache');
+        console.log('Cleared KV cached health status');
+        
+        // Update the health status timestamp when running the scheduled check
+        const newTimestamp = new Date().toISOString();
+        await env.HEALTH_KV.put('health_status_timestamp', newTimestamp, { expirationTtl: 300 });
+        console.log(`Updated health status timestamp to ${newTimestamp}`);
+      } catch (error) {
+        console.error('Error updating KV store:', error);
+      }
+    } else {
+      console.warn('HEALTH_KV binding not available, skipping KV operations');
+    }
     
     // Run the health checks
     await checkAllBackends(env);
@@ -97,22 +106,29 @@ export default {
     const cacheUrl = new URL(request.url);
     const cacheKey = new Request(cacheUrl.toString(), request);
     
-    // Get the Cloudflare cache
-    const cache = caches.default;
+    // Try to get the Cloudflare cache
+    let cachedResponse = null;
     
-    // If this is a force refresh request, skip the cache
-    if (!noCache) {
-      // Try to get the response from Cloudflare's cache
-      let cachedResponse = await cache.match(cacheKey);
+    try {
+      // Get the Cloudflare cache
+      const cache = caches.default;
       
-      if (cachedResponse) {
-        console.log(`Cache hit for: ${request.url}`);
-        return cachedResponse;
+      // If this is a force refresh request, skip the cache
+      if (!noCache && cache) {
+        // Try to get the response from Cloudflare's cache
+        cachedResponse = await cache.match(cacheKey);
+        
+        if (cachedResponse) {
+          console.log(`Cache hit for: ${request.url}`);
+          return cachedResponse;
+        }
+        
+        console.log(`Cache miss for: ${request.url}`);
+      } else {
+        console.log(`Bypassing cache for: ${request.url} due to no-cache header or cache unavailable`);
       }
-      
-      console.log(`Cache miss for: ${request.url}`);
-    } else {
-      console.log(`Bypassing cache for: ${request.url} due to no-cache header`);
+    } catch (error) {
+      console.error(`Error accessing Cloudflare cache:`, error);
     }
     
     // Get the current health status from our KV store
@@ -136,8 +152,17 @@ export default {
     
     // Store the response in Cloudflare's cache
     if (!noCache) {
-      ctx.waitUntil(cache.put(cacheKey, response.clone()));
-      console.log(`Cached response for: ${request.url}`);
+      try {
+        const cache = caches.default;
+        if (cache) {
+          ctx.waitUntil(cache.put(cacheKey, response.clone()));
+          console.log(`Cached response for: ${request.url}`);
+        } else {
+          console.warn('Cloudflare cache not available, skipping cache storage');
+        }
+      } catch (error) {
+        console.error('Error storing response in Cloudflare cache:', error);
+      }
     }
     
     return response;
@@ -150,29 +175,44 @@ export default {
  * @returns {Promise<Object>} - Health status for all networks
  */
 async function getHealthStatus(env) {
-  // Try to get the cached health status from KV
-  const CACHE_TTL_SECONDS = 300; // 5 minutes
-  let cachedHealthStatus = await env.HEALTH_KV.get('health_status_cache', { type: 'json' });
   const now = new Date();
+  const CACHE_TTL_SECONDS = 300; // 5 minutes
+  let timestamp = now.toISOString();
+  let cachedHealthStatus = null;
   
-  // If we have a valid cached response, return it
-  if (cachedHealthStatus) {
-    // Only update the generated timestamp to show when this was served
-    return {
-      ...cachedHealthStatus,
-      cached: true,
-      served: now.toISOString()
-    };
-  }
-  
-  // If no cached response exists, generate a new one
-  console.log('No cached health status found, generating new one');
-  
-  // Get the timestamp (or create a new one)
-  let timestamp = await env.HEALTH_KV.get('health_status_timestamp');
-  if (!timestamp) {
-    timestamp = now.toISOString();
-    await env.HEALTH_KV.put('health_status_timestamp', timestamp, { expirationTtl: CACHE_TTL_SECONDS });
+  // Check if KV store is available
+  if (env && env.HEALTH_KV) {
+    try {
+      // Try to get the cached health status from KV
+      cachedHealthStatus = await env.HEALTH_KV.get('health_status_cache', { type: 'json' });
+      
+      // If we have a valid cached response, return it
+      if (cachedHealthStatus) {
+        // Only update the generated timestamp to show when this was served
+        return {
+          ...cachedHealthStatus,
+          cached: true,
+          served: now.toISOString()
+        };
+      }
+      
+      // If no cached response exists, generate a new one
+      console.log('No cached health status found, generating new one');
+      
+      // Get the timestamp (or create a new one)
+      const storedTimestamp = await env.HEALTH_KV.get('health_status_timestamp');
+      if (storedTimestamp) {
+        timestamp = storedTimestamp;
+      } else {
+        // Store the new timestamp
+        await env.HEALTH_KV.put('health_status_timestamp', timestamp, { expirationTtl: CACHE_TTL_SECONDS });
+      }
+    } catch (error) {
+      console.error('Error accessing KV store:', error);
+      // Continue with default timestamp
+    }
+  } else {
+    console.warn('HEALTH_KV binding not available, using default timestamp');
   }
   
   const results = {
@@ -188,15 +228,28 @@ async function getHealthStatus(env) {
     };
     
     for (const backend of network.backends) {
-      // Check if the backend is marked as down
-      const isDown = await env.HEALTH_KV.get(`down:${backend}`);
-      const reason = isDown || null;
+      let isDown = null;
+      let blockHeight = null;
+      let lastChecked = null;
+      let validatorAddress = null;
       
-      // Get additional information from KV store with caching for values that don't change often
-      const blockHeight = await env.HEALTH_KV.get(`blockHeight:${backend}`);
-      const lastChecked = await env.HEALTH_KV.get(`lastChecked:${backend}`);
-      // Validator addresses don't change often, so we can use a longer cache TTL
-      const validatorAddress = await env.HEALTH_KV.get(`validator:${backend}`, { cacheTtl: KV_CACHE_TTL_SECONDS });
+      // Only try to access KV if it's available
+      if (env && env.HEALTH_KV) {
+        try {
+          // Check if the backend is marked as down
+          isDown = await env.HEALTH_KV.get(`down:${backend}`);
+          
+          // Get additional information from KV store with caching for values that don't change often
+          blockHeight = await env.HEALTH_KV.get(`blockHeight:${backend}`);
+          lastChecked = await env.HEALTH_KV.get(`lastChecked:${backend}`);
+          // Validator addresses don't change often, so we can use a longer cache TTL
+          validatorAddress = await env.HEALTH_KV.get(`validator:${backend}`, { cacheTtl: KV_CACHE_TTL_SECONDS });
+        } catch (error) {
+          console.error(`Error getting data from KV for ${backend}:`, error);
+        }
+      }
+      
+      const reason = isDown || null;
       
       // Convert "null" string to actual null for the response
       const actualValidatorAddress = validatorAddress === "null" ? null : validatorAddress;
@@ -219,8 +272,14 @@ async function getHealthStatus(env) {
     }
   }
   
-  // Cache the results for 5 minutes
-  await env.HEALTH_KV.put('health_status_cache', JSON.stringify(results), { expirationTtl: CACHE_TTL_SECONDS });
+  // Cache the results for 5 minutes if KV is available
+  if (env && env.HEALTH_KV) {
+    try {
+      await env.HEALTH_KV.put('health_status_cache', JSON.stringify(results), { expirationTtl: CACHE_TTL_SECONDS });
+    } catch (error) {
+      console.error('Error caching health status:', error);
+    }
+  }
   
   return results;
 }
