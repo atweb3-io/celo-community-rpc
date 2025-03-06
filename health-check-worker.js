@@ -36,9 +36,12 @@ export default {
   
   // Handle HTTP requests
   async fetch(request, env, ctx) {
-    // Check for cache control headers
+    // Check for cache control headers - only respect no-cache for manual refresh requests
     const cacheControl = request.headers.get('Cache-Control');
-    const noCache = cacheControl && (cacheControl.includes('no-cache') || cacheControl.includes('max-age=0'));
+    const noCache = cacheControl &&
+                   (cacheControl.includes('no-cache') ||
+                    cacheControl.includes('max-age=0')) &&
+                    request.headers.get('X-Requested-With') === 'XMLHttpRequest';
     
     // Check for If-None-Match header (for conditional requests)
     const ifNoneMatch = request.headers.get('If-None-Match');
@@ -61,6 +64,8 @@ export default {
           'ETag': etag,
           'Cache-Control': `public, max-age=${CACHE_TTL_SECONDS}`,
           'Access-Control-Allow-Origin': '*',
+          'Vary': 'Accept-Encoding',
+          'Last-Modified': new Date(results.timestamp).toUTCString(),
         },
       });
     }
@@ -70,9 +75,10 @@ export default {
       headers: {
         'Content-Type': 'application/json',
         'Access-Control-Allow-Origin': '*',
-        'Cache-Control': noCache ? 'no-cache' : `public, max-age=${CACHE_TTL_SECONDS}`,
+        'Cache-Control': `public, max-age=${CACHE_TTL_SECONDS}`, // Always set cache headers, regardless of request
         'ETag': etag,
         'Last-Modified': new Date(results.timestamp).toUTCString(),
+        'Vary': 'Accept-Encoding', // Vary header to ensure proper caching with different encodings
       },
     });
   },

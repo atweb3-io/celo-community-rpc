@@ -228,12 +228,10 @@ This endpoint returns a JSON response with information about healthy and unhealt
 
 The health status endpoint implements a balanced caching strategy to reduce KV reads while maintaining reasonably fresh data:
 
-- **Data Timestamp Caching**: The data timestamp itself is cached in KV and only updated during scheduled runs
 - **Server-side Caching**: Responses are cached for 5 minutes (configurable) with proper HTTP cache headers
-- **Conditional Responses**: 304 Not Modified responses are returned for conditional requests
-- **Client-side Respect**: The frontend respects these cache headers and shows detailed timing information
+- **Client-side Respect**: The frontend respects these cache headers and shows when data is coming from cache
 - **Force Refresh Option**: Users can force a refresh by clicking the refresh button, bypassing the cache
-- **Transparent UI**: The interface clearly shows data timestamp, generation time, and fetch time
+- **Conditional Requests**: ETag headers enable efficient conditional requests
 
 This approach significantly reduces KV reads while still providing timely health status information.
 
