@@ -14,7 +14,6 @@ CF_API_TOKEN = "$CLOUDFLARE_API_TOKEN"
 
 # KV namespace for tracking backend health status
 # This should be the same KV namespace used by the RPC workers
-[kv_namespaces]
 [[kv_namespaces]]
 binding = "HEALTH_KV"
 id = "$HEALTH_KV_ID"
