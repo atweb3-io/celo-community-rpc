@@ -30,14 +30,24 @@ export default {
   
   // Handle HTTP requests
   async fetch(request, env, ctx) {
+    // Check for cache control headers
+    const cacheControl = request.headers.get('Cache-Control');
+    const noCache = cacheControl && (cacheControl.includes('no-cache') || cacheControl.includes('max-age=0'));
+    
     // Get the current health status
     const results = await getHealthStatus(env);
     
-    // Return the health status as JSON
+    // Calculate cache TTL - shorter than the health check interval
+    // Health check runs every 15 minutes, so cache for 5 minutes
+    const CACHE_TTL_SECONDS = 300; // 5 minutes
+    
+    // Return the health status as JSON with cache headers
     return new Response(JSON.stringify(results, null, 2), {
       headers: {
         'Content-Type': 'application/json',
         'Access-Control-Allow-Origin': '*',
+        'Cache-Control': noCache ? 'no-cache' : `public, max-age=${CACHE_TTL_SECONDS}`,
+        'ETag': `"${results.timestamp}"`, // Use timestamp as ETag
       },
     });
   },

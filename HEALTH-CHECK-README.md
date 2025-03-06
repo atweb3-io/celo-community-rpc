@@ -217,4 +217,23 @@ The health check system includes several optimizations to minimize KV operations
 
 5. **Increased Timeout**: Health check timeout is set to 10 seconds instead of 5 seconds, giving backends more time to respond.
 
-These optimizations help reduce the number of KV operations and improve the overall performance of the health check system.
+6. **HTTP Response Caching**: The health check endpoint implements HTTP caching with the following features:
+   - Responses are cached for 5 minutes (configurable via `CACHE_TTL_SECONDS`)
+   - Cache-Control headers are set to allow browsers and CDNs to cache responses
+   - ETag headers are set based on the timestamp for conditional requests
+   - Clients can bypass the cache by sending `Cache-Control: no-cache` header
+   - The frontend respects these cache headers to reduce unnecessary requests
+
+These optimizations help reduce the number of KV operations and improve the overall performance of the health check system while maintaining a good balance between data freshness and efficiency.
+
+### Caching Strategy
+
+The caching strategy is designed to find a middle ground between always having the most current health status and reducing the number of KV reads:
+
+1. **Server-side Caching**: The health check endpoint sets Cache-Control headers with a 5-minute TTL, which is shorter than the 15-minute health check interval. This ensures that clients get reasonably fresh data while reducing load on the KV store.
+
+2. **Client-side Caching**: The frontend respects these cache headers and will use cached responses when available. The UI shows when data is coming from cache.
+
+3. **Force Refresh Option**: Users can force a refresh by clicking the refresh button, which bypasses the cache and gets the latest data directly from the KV store.
+
+This approach significantly reduces KV reads while still providing timely health status information.

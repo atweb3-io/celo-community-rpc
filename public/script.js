@@ -290,15 +290,16 @@ document.addEventListener('DOMContentLoaded', async () => {
         const refreshButton = document.getElementById('refresh-health-btn');
         if (refreshButton) {
             refreshButton.addEventListener('click', async () => {
-                await fetchHealthStatus();
+                await fetchHealthStatus(true); // Force refresh when button is clicked
             });
         }
     }
 
     /**
      * Fetch health status data from the health check endpoint
+     * @param {boolean} forceRefresh - Whether to force a refresh bypassing the cache
      */
-    async function fetchHealthStatus() {
+    async function fetchHealthStatus(forceRefresh = false) {
         const healthStatusContent = document.getElementById('health-status-content');
         const lastUpdatedElement = document.getElementById('health-last-updated');
         
@@ -313,8 +314,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         `;
         
         try {
+            // Set up fetch options with cache control
+            const fetchOptions = {
+                cache: forceRefresh ? 'reload' : 'default',
+                headers: forceRefresh ? { 'Cache-Control': 'no-cache' } : {}
+            };
+            
             // Fetch health status data
-            const response = await fetch(HEALTH_CHECK_URL);
+            const response = await fetch(HEALTH_CHECK_URL, fetchOptions);
             
             if (!response.ok) {
                 throw new Error(`HTTP error! Status: ${response.status}`);
@@ -326,6 +333,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (lastUpdatedElement) {
                 const now = new Date();
                 lastUpdatedElement.textContent = now.toLocaleTimeString();
+                
+                // If we got a cached response, show that in the UI
+                if (response.headers.get('Age')) {
+                    const ageSeconds = parseInt(response.headers.get('Age'));
+                    lastUpdatedElement.textContent += ` (cached ${ageSeconds}s ago)`;
+                }
             }
             
             // Display health status data
@@ -346,7 +359,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const retryButton = document.getElementById('retry-health-btn');
             if (retryButton) {
                 retryButton.addEventListener('click', async () => {
-                    await fetchHealthStatus();
+                    await fetchHealthStatus(true); // Force refresh on retry
                 });
             }
         }
