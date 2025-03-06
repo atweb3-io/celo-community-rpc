@@ -5,6 +5,13 @@ account_id = "$CLOUDFLARE_ACCOUNT_ID"
 workers_dev = false
 route = "health.celo-community.org/*"
 
+# Environment variables
+[vars]
+# These variables are used for Cloudflare API access to purge cache
+CF_ACCOUNT_ID = "$CLOUDFLARE_ACCOUNT_ID"
+CF_ZONE_ID = "$CLOUDFLARE_ZONE_ID"
+CF_API_TOKEN = "$CLOUDFLARE_API_TOKEN"
+
 # KV namespace for tracking backend health status
 # This should be the same KV namespace used by the RPC workers
 kv_namespaces = [

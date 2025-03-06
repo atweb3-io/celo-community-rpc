@@ -217,16 +217,23 @@ The health check system includes several optimizations to minimize KV operations
 
 5. **Increased Timeout**: Health check timeout is set to 10 seconds instead of 5 seconds, giving backends more time to respond.
 
-6. **Complete Response Caching**: The health check endpoint implements a comprehensive caching strategy:
-   - The entire health status response is cached in KV for 5 minutes
-   - Only a single "served" timestamp is updated on each request
-   - Cache is completely refreshed during scheduled health checks (every 15 minutes)
-   - HTTP caching headers (Cache-Control, ETag, Last-Modified) enable browser/CDN caching
-   - 304 Not Modified responses are returned for conditional requests
-   - Clients can bypass the cache by sending `Cache-Control: no-cache` header
-   - The frontend respects these cache headers to reduce unnecessary requests
-   - UI clearly shows data timestamp, generation time, served time, and fetch time
-   - Cache status is indicated in the UI with a "(cached)" label
+6. **Multi-level Caching Strategy**: The health check endpoint implements a comprehensive multi-level caching strategy:
+   - **Cloudflare Cache API**: Leverages Cloudflare's global CDN for edge caching
+     - Responses are cached at the edge for 5 minutes using `s-maxage=300`
+     - Cache entries are tagged with `health-status` for targeted purging
+     - Cache is automatically purged during scheduled health checks
+   - **KV Store Caching**: Provides a fallback when edge cache misses occur
+     - The entire health status response is cached in KV for 5 minutes
+     - Only a single "served" timestamp is updated on each request
+     - KV cache is refreshed during scheduled health checks (every 15 minutes)
+   - **HTTP Cache Headers**: Enable browser and proxy caching
+     - ETag and Last-Modified headers for conditional requests
+     - 304 Not Modified responses for unchanged content
+     - Vary headers to handle different encodings and origins
+   - **Client-side Features**:
+     - Cache bypass option with `Cache-Control: no-cache` header
+     - UI clearly shows data timestamp, generation time, served time, and fetch time
+     - Cache status is indicated in the UI with a "(cached)" label
 
 These optimizations help reduce the number of KV operations and improve the overall performance of the health check system while maintaining a good balance between data freshness and efficiency.
 

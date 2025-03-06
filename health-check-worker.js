@@ -26,9 +26,9 @@ export default {
   async scheduled(event, env, ctx) {
     console.log('Running scheduled health check');
     
-    // Clear the cached health status to force regeneration
+    // Clear the cached health status in KV to force regeneration
     await env.HEALTH_KV.delete('health_status_cache');
-    console.log('Cleared cached health status');
+    console.log('Cleared KV cached health status');
     
     // Update the health status timestamp when running the scheduled check
     const newTimestamp = new Date().toISOString();
@@ -41,6 +41,39 @@ export default {
     // Generate and cache a new health status after checks are complete
     const results = await getHealthStatus(env);
     console.log('Generated new health status cache');
+    
+    // Purge the Cloudflare cache by tag
+    try {
+      // Get the API token from environment variables
+      const apiToken = env.CF_API_TOKEN;
+      const accountId = env.CF_ACCOUNT_ID;
+      const zoneId = env.CF_ZONE_ID;
+      
+      if (apiToken && zoneId) {
+        // Purge the cache by tag
+        const purgeRequest = await fetch(`https://api.cloudflare.com/client/v4/zones/${zoneId}/purge_cache`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${apiToken}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            tags: ['health-status']
+          })
+        });
+        
+        const purgeResponse = await purgeRequest.json();
+        if (purgeResponse.success) {
+          console.log('Successfully purged Cloudflare cache by tag');
+        } else {
+          console.error('Failed to purge Cloudflare cache:', purgeResponse.errors);
+        }
+      } else {
+        console.log('Skipping Cloudflare cache purge - API token or Zone ID not available');
+      }
+    } catch (error) {
+      console.error('Error purging Cloudflare cache:', error);
+    }
   },
   
   // Handle HTTP requests
@@ -56,44 +89,58 @@ export default {
                    (cacheControl.includes('no-cache') ||
                     cacheControl.includes('max-age=0'));
     
-    // Check for If-None-Match header (for conditional requests)
-    const ifNoneMatch = request.headers.get('If-None-Match');
-    
-    // Get the current health status
-    const results = await getHealthStatus(env);
-    
     // Calculate cache TTL - shorter than the health check interval
     // Health check runs every 15 minutes, so cache for 5 minutes
     const CACHE_TTL_SECONDS = 300; // 5 minutes
     
-    // Create ETag from the timestamp (which is now cached)
-    const etag = `"${results.timestamp}"`;
+    // Construct the cache key from the request URL
+    const cacheUrl = new URL(request.url);
+    const cacheKey = new Request(cacheUrl.toString(), request);
     
-    // If client has the current version (ETag matches), return 304 Not Modified
-    if (ifNoneMatch && ifNoneMatch === etag && !noCache) {
-      return new Response(null, {
-        status: 304,
-        headers: {
-          'ETag': etag,
-          'Cache-Control': `public, max-age=${CACHE_TTL_SECONDS}`,
-          ...getCorsHeaders(),
-          'Vary': 'Accept-Encoding, Origin',
-          'Last-Modified': new Date(results.timestamp).toUTCString(),
-        },
-      });
+    // Get the Cloudflare cache
+    const cache = caches.default;
+    
+    // If this is a force refresh request, skip the cache
+    if (!noCache) {
+      // Try to get the response from Cloudflare's cache
+      let cachedResponse = await cache.match(cacheKey);
+      
+      if (cachedResponse) {
+        console.log(`Cache hit for: ${request.url}`);
+        return cachedResponse;
+      }
+      
+      console.log(`Cache miss for: ${request.url}`);
+    } else {
+      console.log(`Bypassing cache for: ${request.url} due to no-cache header`);
     }
     
-    // Return the health status as JSON with cache headers
-    return new Response(JSON.stringify(results, null, 2), {
+    // Get the current health status from our KV store
+    const results = await getHealthStatus(env);
+    
+    // Create ETag from the timestamp
+    const etag = `"${results.timestamp}"`;
+    
+    // Create a new response with appropriate headers
+    const response = new Response(JSON.stringify(results, null, 2), {
       headers: {
         'Content-Type': 'application/json',
         ...getCorsHeaders(),
-        'Cache-Control': `public, max-age=${CACHE_TTL_SECONDS}`, // Always set cache headers, regardless of request
+        'Cache-Control': `public, s-maxage=${CACHE_TTL_SECONDS}`, // s-maxage for CDN caching
         'ETag': etag,
         'Last-Modified': new Date(results.timestamp).toUTCString(),
         'Vary': 'Accept-Encoding, Origin', // Vary header to ensure proper caching with different encodings
+        'Cache-Tag': 'health-status', // For purging by tag if needed
       },
     });
+    
+    // Store the response in Cloudflare's cache
+    if (!noCache) {
+      ctx.waitUntil(cache.put(cacheKey, response.clone()));
+      console.log(`Cached response for: ${request.url}`);
+    }
+    
+    return response;
   },
 };
 

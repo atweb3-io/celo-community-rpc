@@ -224,14 +224,28 @@ https://health.celo-community.org/
 
 This endpoint returns a JSON response with information about healthy and unhealthy backends for each network. It's useful for monitoring and debugging purposes.
 
-#### Caching Strategy
+#### Multi-level Caching Strategy
 
-The health status endpoint implements a balanced caching strategy to reduce KV reads while maintaining reasonably fresh data:
+The health status endpoint implements a sophisticated multi-level caching strategy to optimize performance and reduce resource usage:
 
-- **Server-side Caching**: Responses are cached for 5 minutes (configurable) with proper HTTP cache headers
-- **Client-side Respect**: The frontend respects these cache headers and shows when data is coming from cache
-- **Force Refresh Option**: Users can force a refresh by clicking the refresh button, bypassing the cache
-- **Conditional Requests**: ETag headers enable efficient conditional requests
+- **Cloudflare Edge Caching**: Leverages Cloudflare's global CDN for ultra-fast responses
+  - Responses are cached at edge locations worldwide
+  - Automatic purging during scheduled health checks
+  - Tagged cache entries for targeted invalidation
+
+- **KV Store Caching**: Provides a fallback when edge cache misses occur
+  - Complete response caching reduces KV read operations
+  - Only updated during scheduled health checks (every 15 minutes)
+
+- **HTTP Cache Headers**: Enable browser and proxy caching
+  - ETag and Last-Modified headers for conditional requests
+  - 304 Not Modified responses for unchanged content
+  - Proper Vary headers for different encodings and origins
+
+- **Client-side Features**:
+  - Force refresh option with the refresh button
+  - Transparent UI showing all relevant timestamps
+  - Cache status indicators in the interface
 
 This approach significantly reduces KV reads while still providing timely health status information.
 
