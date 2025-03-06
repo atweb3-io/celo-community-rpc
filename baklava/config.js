@@ -1,5 +1,6 @@
 // Baklava testnet configuration
 import { backendList } from './rpc-servers.js';
+import { debugKvNamespace } from '../debug-kv-issue.js';
 
 // Constants
 const REQUEST_TIMEOUT_MS = 30000; // 30 seconds
@@ -21,26 +22,39 @@ async function getHealthyBackends(env) {
   // This follows the pattern used in the health-check-worker
   
   // Check if KV is available
-  if (!env || !env.HEALTH_KV) {
-    console.warn('HEALTH_KV not available, using all backends');
+  if (!env) {
+    console.warn('Environment object is not available, using all backends');
     return [...backendList];
   }
+  
+  if (!env.HEALTH_KV) {
+    console.warn('HEALTH_KV binding is not available, using all backends');
+    console.log('Available bindings:', Object.keys(env).join(', '));
+    return [...backendList];
+  }
+  
+  console.log('HEALTH_KV binding is available, checking backend health');
   
   // Process each backend
   for (const backend of backendList) {
     try {
       // Check if the backend is marked as down in KV
+      console.log(`Checking if backend ${backend} is down in KV...`);
       const isDown = await env.HEALTH_KV.get(`down:${backend}`);
+      console.log(`KV result for down:${backend}: ${isDown}`);
       
       if (!isDown) {
         // Backend is not marked as unhealthy in KV, so it's healthy
+        console.log(`Backend ${backend} is healthy (not marked as down in KV)`);
         healthyBackends.push(backend);
       } else {
         console.log(`Backend ${backend} is marked as unhealthy in KV: ${isDown}`);
       }
     } catch (error) {
-      console.warn(`Error checking KV for backend ${backend}: ${error.message}`);
+      console.error(`Error checking KV for backend ${backend}:`, error);
+      console.error(`Error details: ${error.message}, stack: ${error.stack}`);
       // If there's an error checking KV, assume the backend is healthy
+      console.log(`Adding backend ${backend} to healthy list despite KV error`);
       healthyBackends.push(backend);
     }
   }
@@ -66,15 +80,29 @@ async function markBackendUnhealthy(env, backend, reason) {
   console.log(`Marking backend ${backend} as unhealthy: ${reason}`);
   
   // Store in KV if available - simplified approach like health-check-worker
-  if (env && env.HEALTH_KV) {
-    try {
-      await env.HEALTH_KV.put(`down:${backend}`, reason, { expirationTtl: Math.floor(HEALTH_CHECK_COOLDOWN_MS / 1000) });
-      console.log(`Stored unhealthy backend ${backend} in KV: ${reason}`);
-    } catch (kvError) {
-      console.error(`Error storing unhealthy backend in KV: ${kvError.message}`);
-    }
-  } else {
-    console.warn(`HEALTH_KV not available, cannot mark backend ${backend} as unhealthy`);
+  if (!env) {
+    console.warn(`Environment object is not available, cannot mark backend ${backend} as unhealthy`);
+    return;
+  }
+  
+  if (!env.HEALTH_KV) {
+    console.warn(`HEALTH_KV binding is not available, cannot mark backend ${backend} as unhealthy`);
+    console.log('Available bindings:', Object.keys(env).join(', '));
+    return;
+  }
+  
+  console.log(`HEALTH_KV binding is available, marking backend ${backend} as unhealthy`);
+  
+  try {
+    console.log(`Putting key down:${backend} with value ${reason} in KV...`);
+    const expirationTtl = Math.floor(HEALTH_CHECK_COOLDOWN_MS / 1000);
+    console.log(`Using expiration TTL: ${expirationTtl} seconds`);
+    
+    await env.HEALTH_KV.put(`down:${backend}`, reason, { expirationTtl });
+    console.log(`Successfully stored unhealthy backend ${backend} in KV: ${reason}`);
+  } catch (kvError) {
+    console.error(`Error storing unhealthy backend in KV:`, kvError);
+    console.error(`Error details: ${kvError.message}, stack: ${kvError.stack}`);
   }
   
   // Purge health cache to ensure health status page is updated
@@ -212,6 +240,9 @@ function getNextBackend(backends = backendList) {
  * @returns {Response} - The response to send back
  */
 export async function handleRequest(request, env, ctx) {
+  // Debug KV namespace
+  debugKvNamespace(env);
+  
   // Direct access to env like in health-check-worker
   
   // Apply rate limiting based on client IP if rate limiter is available
