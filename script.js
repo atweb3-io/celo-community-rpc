@@ -332,12 +332,34 @@ document.addEventListener('DOMContentLoaded', async () => {
             // Update last updated time
             if (lastUpdatedElement) {
                 const now = new Date();
-                lastUpdatedElement.textContent = now.toLocaleTimeString();
+                
+                // Show when the data was generated vs when it was fetched
+                if (data.timestamp) {
+                    const dataTime = new Date(data.timestamp);
+                    lastUpdatedElement.textContent = `Data from: ${dataTime.toLocaleTimeString()}`;
+                    
+                    // If there's a generated timestamp (different from data timestamp), show it
+                    if (data.generated && data.generated !== data.timestamp) {
+                        const generatedTime = new Date(data.generated);
+                        lastUpdatedElement.textContent += ` | Generated: ${generatedTime.toLocaleTimeString()}`;
+                    }
+                    
+                    // Show fetch time
+                    lastUpdatedElement.textContent += ` | Fetched: ${now.toLocaleTimeString()}`;
+                } else {
+                    // Fallback if no timestamp in data
+                    lastUpdatedElement.textContent = `Fetched: ${now.toLocaleTimeString()}`;
+                }
                 
                 // If we got a cached response, show that in the UI
                 if (response.headers.get('Age')) {
                     const ageSeconds = parseInt(response.headers.get('Age'));
                     lastUpdatedElement.textContent += ` (cached ${ageSeconds}s ago)`;
+                }
+                
+                // If this was a conditional response (304 Not Modified), show that
+                if (response.status === 304) {
+                    lastUpdatedElement.textContent += ' (304 Not Modified)';
                 }
             }
             
