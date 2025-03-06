@@ -1,5 +1,6 @@
 import { handleRequest } from './config.js';
 
 addEventListener('fetch', event => {
-  event.respondWith(handleRequest(event.request, event.env));
+  // In Cloudflare Workers, environment bindings are available as 'env', not 'event.env'
+  event.respondWith(handleRequest(event.request, env));
 });
