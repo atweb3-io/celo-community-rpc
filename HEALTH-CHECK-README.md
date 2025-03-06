@@ -219,10 +219,14 @@ The health check system includes several optimizations to minimize KV operations
 
 6. **HTTP Response Caching**: The health check endpoint implements HTTP caching with the following features:
    - Responses are cached for 5 minutes (configurable via `CACHE_TTL_SECONDS`)
+   - The data timestamp itself is cached in KV and only updated during scheduled runs
    - Cache-Control headers are set to allow browsers and CDNs to cache responses
-   - ETag headers are set based on the timestamp for conditional requests
+   - ETag headers are set based on the cached timestamp for conditional requests
+   - Last-Modified headers are included for additional caching support
+   - 304 Not Modified responses are returned for conditional requests
    - Clients can bypass the cache by sending `Cache-Control: no-cache` header
    - The frontend respects these cache headers to reduce unnecessary requests
+   - UI clearly shows data timestamp, generation time, and fetch time
 
 These optimizations help reduce the number of KV operations and improve the overall performance of the health check system while maintaining a good balance between data freshness and efficiency.
 

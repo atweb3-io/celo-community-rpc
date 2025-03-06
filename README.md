@@ -209,7 +209,7 @@ The health check system consists of two components:
    - Automatically reinstate backends after the cooldown period
 
 2. **Active Health Checks**: Implemented as a separate scheduled worker
-   - Runs every 5 minutes
+   - Runs every 15 minutes
    - Proactively checks the health of all backends
    - Verifies that backends are fully synced and responsive
    - Marks unhealthy backends in Cloudflare KV
@@ -224,6 +224,29 @@ https://health.celo-community.org/
 
 This endpoint returns a JSON response with information about healthy and unhealthy backends for each network. It's useful for monitoring and debugging purposes.
 
+#### Caching Strategy
+
+The health status endpoint implements a balanced caching strategy to reduce KV reads while maintaining reasonably fresh data:
+
+- **Data Timestamp Caching**: The data timestamp itself is cached in KV and only updated during scheduled runs
+- **Server-side Caching**: Responses are cached for 5 minutes (configurable) with proper HTTP cache headers
+- **Conditional Responses**: 304 Not Modified responses are returned for conditional requests
+- **Client-side Respect**: The frontend respects these cache headers and shows detailed timing information
+- **Force Refresh Option**: Users can force a refresh by clicking the refresh button, bypassing the cache
+- **Transparent UI**: The interface clearly shows data timestamp, generation time, and fetch time
+
+This approach significantly reduces KV reads while still providing timely health status information.
+
+### Performance Optimizations
+
+The health check system includes several optimizations:
+
+1. **Longer Health Check Interval**: The health check worker runs every 15 minutes
+2. **HTTP Response Caching**: Responses are cached for 5 minutes
+3. **KV Caching**: Validator addresses are cached for 1 hour
+4. **KV Expiration**: Data is stored with appropriate TTLs to clean up stale information
+5. **Increased Timeout**: Health check timeout is set to 10 seconds
+
 ### Benefits
 
 - **Improved Reliability**: Unhealthy backends are automatically excluded from the rotation
@@ -231,6 +254,7 @@ This endpoint returns a JSON response with information about healthy and unhealt
 - **Automatic Recovery**: Backends are automatically reinstated after the cooldown period
 - **Proactive Issue Detection**: Active health checks detect issues before they affect users
 - **Monitoring**: Public health status endpoint for monitoring and debugging
+- **Efficient Resource Usage**: Caching strategy reduces KV operations while maintaining data freshness
 
 ### Documentation
 

@@ -25,6 +25,12 @@ export default {
   // Handle scheduled events (cron triggers)
   async scheduled(event, env, ctx) {
     console.log('Running scheduled health check');
+    
+    // Update the health status timestamp when running the scheduled check
+    const newTimestamp = new Date().toISOString();
+    await env.HEALTH_KV.put('health_status_timestamp', newTimestamp, { expirationTtl: 300 });
+    console.log(`Updated health status timestamp to ${newTimestamp}`);
+    
     await checkAllBackends(env);
   },
   
@@ -34,6 +40,9 @@ export default {
     const cacheControl = request.headers.get('Cache-Control');
     const noCache = cacheControl && (cacheControl.includes('no-cache') || cacheControl.includes('max-age=0'));
     
+    // Check for If-None-Match header (for conditional requests)
+    const ifNoneMatch = request.headers.get('If-None-Match');
+    
     // Get the current health status
     const results = await getHealthStatus(env);
     
@@ -41,13 +50,29 @@ export default {
     // Health check runs every 15 minutes, so cache for 5 minutes
     const CACHE_TTL_SECONDS = 300; // 5 minutes
     
+    // Create ETag from the timestamp (which is now cached)
+    const etag = `"${results.timestamp}"`;
+    
+    // If client has the current version (ETag matches), return 304 Not Modified
+    if (ifNoneMatch && ifNoneMatch === etag && !noCache) {
+      return new Response(null, {
+        status: 304,
+        headers: {
+          'ETag': etag,
+          'Cache-Control': `public, max-age=${CACHE_TTL_SECONDS}`,
+          'Access-Control-Allow-Origin': '*',
+        },
+      });
+    }
+    
     // Return the health status as JSON with cache headers
     return new Response(JSON.stringify(results, null, 2), {
       headers: {
         'Content-Type': 'application/json',
         'Access-Control-Allow-Origin': '*',
         'Cache-Control': noCache ? 'no-cache' : `public, max-age=${CACHE_TTL_SECONDS}`,
-        'ETag': `"${results.timestamp}"`, // Use timestamp as ETag
+        'ETag': etag,
+        'Last-Modified': new Date(results.timestamp).toUTCString(),
       },
     });
   },
@@ -59,8 +84,20 @@ export default {
  * @returns {Promise<Object>} - Health status for all networks
  */
 async function getHealthStatus(env) {
+  // Try to get the cached timestamp from KV
+  let cachedTimestamp = await env.HEALTH_KV.get('health_status_timestamp');
+  
+  // If no cached timestamp exists or it's older than 5 minutes, create a new one
+  const now = new Date();
+  if (!cachedTimestamp) {
+    cachedTimestamp = now.toISOString();
+    // Store the timestamp with a 5-minute TTL
+    await env.HEALTH_KV.put('health_status_timestamp', cachedTimestamp, { expirationTtl: 300 });
+  }
+  
   const results = {
-    timestamp: new Date().toISOString(),
+    timestamp: cachedTimestamp,
+    generated: now.toISOString(), // Include when this response was generated
     networks: {}
   };
   
