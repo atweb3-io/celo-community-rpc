@@ -485,6 +485,44 @@ footer {
     opacity: 1;
 }
 
+/* GitHub Link Styles */
+.github-link-container {
+    display: flex;
+    justify-content: center;
+    margin-bottom: var(--spacing-lg);
+}
+
+.github-link {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    background-color: var(--card-background);
+    color: var(--text-color);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-md);
+    padding: var(--spacing-md) var(--spacing-lg);
+    font-weight: 500;
+    transition: all var(--transition-normal);
+    box-shadow: var(--shadow-sm);
+}
+
+.github-link:hover {
+    background-color: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
+    text-decoration: none;
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.github-link svg {
+    transition: transform var(--transition-normal);
+}
+
+.github-link:hover svg {
+    transform: rotate(5deg);
+}
+
 /* Health Status Styles */
 .health-status-container {
     margin-bottom: var(--spacing-lg);
@@ -711,5 +749,17 @@ footer {
     
     .health-server-reason {
         border-top-color: #3E454D;
+    }
+    
+    .github-link {
+        background-color: #2E3338;
+        color: #F9FAFB;
+        border-color: #3E454D;
+    }
+    
+    .github-link:hover {
+        background-color: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
     }
 }
