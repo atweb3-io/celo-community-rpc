@@ -89,9 +89,8 @@ export default {
     const ifModifiedSince = request.headers.get('If-Modified-Since');
     
     // Determine if this is a force refresh request
-    const noCache = cacheControl &&
-                   (cacheControl.includes('no-cache') ||
-                    cacheControl.includes('max-age=0'));
+    // Only consider it a force refresh if it explicitly has no-cache
+    const noCache = cacheControl && cacheControl.includes('no-cache');
     
     // Calculate cache TTL - shorter than the health check interval
     // Health check runs every 15 minutes, so cache for 5 minutes
@@ -177,9 +176,6 @@ export default {
     const etag = `"${results.timestamp}"`;
     const lastModified = new Date(results.timestamp).toUTCString();
     
-    // Create the current time for the served timestamp
-    const servedTime = new Date().toISOString();
-    
     // Create a new response with appropriate headers
     const response = new Response(JSON.stringify(results, null, 2), {
       headers: {
@@ -189,8 +185,6 @@ export default {
         'ETag': etag,
         'Last-Modified': lastModified,
         'Vary': 'Accept-Encoding, Origin', // Vary header to ensure proper caching with different encodings
-        'X-Cache-Status': 'MISS', // Will be overwritten by CF for cache hits
-        'X-Served-Time': servedTime, // When this response was served
       },
     });
     
@@ -261,10 +255,8 @@ async function getHealthStatus(env) {
   
   const results = {
     timestamp: timestamp,  // When the health data was last collected during scheduled check
-    generated: now.toISOString(),  // When this response was generated
     _metadata: {
-      timestamp_info: "When the health data was last collected during scheduled check",
-      generated_info: "When this response was generated"
+      timestamp_info: "When the health data was last collected during scheduled check"
     },
     networks: {}
   };
