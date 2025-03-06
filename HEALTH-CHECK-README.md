@@ -220,8 +220,8 @@ The health check system includes several optimizations to minimize KV operations
 6. **Multi-level Caching Strategy**: The health check endpoint implements a comprehensive multi-level caching strategy:
    - **Cloudflare Cache API**: Leverages Cloudflare's global CDN for edge caching
      - Responses are cached at the edge for 5 minutes using `s-maxage=300`
-     - Cache entries are tagged with `health-status` for targeted purging
-     - Cache is automatically purged during scheduled health checks
+     - Cache is directly purged using the Cache API during scheduled health checks
+     - No external API calls required for cache management
    - **KV Store Caching**: Provides a fallback when edge cache misses occur
      - The entire health status response is cached in KV for 5 minutes
      - Only a single "served" timestamp is updated on each request

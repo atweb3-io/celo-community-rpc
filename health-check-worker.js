@@ -51,34 +51,25 @@ export default {
     const results = await getHealthStatus(env);
     console.log('Generated new health status cache');
     
-    // Purge the Cloudflare cache by tag
+    // Instead of trying to purge the cache via API, we'll use the Cache API directly
     try {
-      // Get the API token from environment variables
-      const apiToken = env.CF_API_TOKEN;
-      const accountId = env.CF_ACCOUNT_ID;
-      const zoneId = env.CF_ZONE_ID;
+      // Get the Cloudflare cache
+      const cache = caches.default;
       
-      if (apiToken && zoneId) {
-        // Purge the cache by tag
-        const purgeRequest = await fetch(`https://api.cloudflare.com/client/v4/zones/${zoneId}/purge_cache`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${apiToken}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            tags: ['health-status']
-          })
-        });
+      if (cache) {
+        // Create a cache key for the health endpoint
+        const cacheUrl = new URL('https://health.celo-community.org/');
+        const cacheKey = new Request(cacheUrl.toString());
         
-        const purgeResponse = await purgeRequest.json();
-        if (purgeResponse.success) {
-          console.log('Successfully purged Cloudflare cache by tag');
+        // Delete the cache entry
+        const deleted = await cache.delete(cacheKey);
+        if (deleted) {
+          console.log('Successfully purged Cloudflare cache for health endpoint');
         } else {
-          console.error('Failed to purge Cloudflare cache:', purgeResponse.errors);
+          console.log('No cache entry found to purge for health endpoint');
         }
       } else {
-        console.log('Skipping Cloudflare cache purge - API token or Zone ID not available');
+        console.log('Cloudflare cache not available, skipping cache purge');
       }
     } catch (error) {
       console.error('Error purging Cloudflare cache:', error);

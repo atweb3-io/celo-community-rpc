@@ -230,8 +230,8 @@ The health status endpoint implements a sophisticated multi-level caching strate
 
 - **Cloudflare Edge Caching**: Leverages Cloudflare's global CDN for ultra-fast responses
   - Responses are cached at edge locations worldwide
-  - Automatic purging during scheduled health checks
-  - Tagged cache entries for targeted invalidation
+  - Direct cache purging using the Cache API during scheduled health checks
+  - No external API calls required for cache management
 
 - **KV Store Caching**: Provides a fallback when edge cache misses occur
   - Complete response caching reduces KV read operations
