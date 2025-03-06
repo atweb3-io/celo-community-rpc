@@ -15,18 +15,37 @@ let currentBackendIndex = 0;
  * @returns {Promise<string[]>} - Array of healthy backend URLs
  */
 async function getHealthyBackends(env) {
-  // If HEALTH_KV is not available, return all backends
-  if (!env || !env.HEALTH_KV) {
-    return [...backendList];
-  }
-
   const healthyBackends = [];
   
-  for (const backend of backendList) {
-    // Check if the backend is marked as down in KV
-    const isDown = await env.HEALTH_KV.get(`down:${backend}`);
-    if (!isDown) {
-      healthyBackends.push(backend);
+  // First check if we have in-memory unhealthy backends
+  const inMemoryUnhealthyBackends = typeof globalThis.UNHEALTHY_BACKENDS !== 'undefined' ?
+    globalThis.UNHEALTHY_BACKENDS : new Map();
+  
+  // If KV is available, check it first
+  if (env && env.HEALTH_KV) {
+    for (const backend of backendList) {
+      // Check if the backend is marked as down in KV
+      const isDown = await env.HEALTH_KV.get(`down:${backend}`);
+      if (!isDown) {
+        healthyBackends.push(backend);
+      } else {
+        console.log(`Backend ${backend} is marked as unhealthy in KV: ${isDown}`);
+      }
+    }
+  } else {
+    // If KV is not available, use in-memory fallback
+    console.warn('HEALTH_KV not available, using in-memory fallback for unhealthy backends');
+    
+    for (const backend of backendList) {
+      // Check if the backend is marked as down in memory
+      const unhealthyInfo = inMemoryUnhealthyBackends.get(backend);
+      
+      // Check if the backend is unhealthy and if the cooldown period has passed
+      if (unhealthyInfo && (Date.now() - unhealthyInfo.timestamp) < HEALTH_CHECK_COOLDOWN_MS) {
+        console.log(`Backend ${backend} is marked as unhealthy in memory: ${unhealthyInfo.reason}`);
+      } else {
+        healthyBackends.push(backend);
+      }
     }
   }
   
@@ -36,6 +55,7 @@ async function getHealthyBackends(env) {
     return [...backendList];
   }
   
+  console.log(`Using ${healthyBackends.length} healthy backends out of ${backendList.length} total`);
   return healthyBackends;
 }
 
