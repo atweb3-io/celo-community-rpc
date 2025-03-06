@@ -318,8 +318,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const fetchOptions = {
                 cache: forceRefresh ? 'reload' : 'default',
                 headers: forceRefresh ? {
-                    'Cache-Control': 'no-cache',
-                    'X-Requested-With': 'XMLHttpRequest' // Add this header for manual refreshes
+                    'Cache-Control': 'no-cache'
                 } : {}
             };
             

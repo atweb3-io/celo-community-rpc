@@ -36,12 +36,16 @@ export default {
   
   // Handle HTTP requests
   async fetch(request, env, ctx) {
+    // Handle preflight OPTIONS request for CORS
+    if (request.method === 'OPTIONS') {
+      return handleCors();
+    }
+    
     // Check for cache control headers - only respect no-cache for manual refresh requests
     const cacheControl = request.headers.get('Cache-Control');
     const noCache = cacheControl &&
                    (cacheControl.includes('no-cache') ||
-                    cacheControl.includes('max-age=0')) &&
-                    request.headers.get('X-Requested-With') === 'XMLHttpRequest';
+                    cacheControl.includes('max-age=0'));
     
     // Check for If-None-Match header (for conditional requests)
     const ifNoneMatch = request.headers.get('If-None-Match');
@@ -63,8 +67,8 @@ export default {
         headers: {
           'ETag': etag,
           'Cache-Control': `public, max-age=${CACHE_TTL_SECONDS}`,
-          'Access-Control-Allow-Origin': '*',
-          'Vary': 'Accept-Encoding',
+          ...getCorsHeaders(),
+          'Vary': 'Accept-Encoding, Origin',
           'Last-Modified': new Date(results.timestamp).toUTCString(),
         },
       });
@@ -74,11 +78,11 @@ export default {
     return new Response(JSON.stringify(results, null, 2), {
       headers: {
         'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
+        ...getCorsHeaders(),
         'Cache-Control': `public, max-age=${CACHE_TTL_SECONDS}`, // Always set cache headers, regardless of request
         'ETag': etag,
         'Last-Modified': new Date(results.timestamp).toUTCString(),
-        'Vary': 'Accept-Encoding', // Vary header to ensure proper caching with different encodings
+        'Vary': 'Accept-Encoding, Origin', // Vary header to ensure proper caching with different encodings
       },
     });
   },
@@ -358,6 +362,30 @@ async function setNullValidatorAddresses(network, env) {
   } else {
     console.log(`No validator addresses needed updating for ${network.name}`);
   }
+}
+
+/**
+ * Handle CORS preflight requests
+ * @returns {Response} - A response with CORS headers
+ */
+function handleCors() {
+  return new Response(null, {
+    status: 204,
+    headers: getCorsHeaders(),
+  });
+}
+
+/**
+ * Get CORS headers for responses
+ * @returns {Object} - CORS headers
+ */
+function getCorsHeaders() {
+  return {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Cache-Control, X-Requested-With',
+    'Access-Control-Max-Age': '86400',
+  };
 }
 
 /**
