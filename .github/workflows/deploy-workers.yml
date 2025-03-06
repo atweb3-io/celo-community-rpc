@@ -22,17 +22,10 @@ jobs:
         include:
           - network: mainnet
             route: rpc.celo-community.org/*
-            # Optional: Use separate KV namespaces for each network
-            # kv_id: ${{ secrets.MAINNET_HEALTH_KV_ID }}
-            # kv_preview_id: ${{ secrets.MAINNET_HEALTH_KV_PREVIEW_ID }}
           - network: baklava
             route: baklava-rpc.celo-community.org/*
-            # kv_id: ${{ secrets.BAKLAVA_HEALTH_KV_ID }}
-            # kv_preview_id: ${{ secrets.BAKLAVA_HEALTH_KV_PREVIEW_ID }}
           - network: alfajores
             route: alfajores-rpc.celo-community.org/*
-            # kv_id: ${{ secrets.ALFAJORES_HEALTH_KV_ID }}
-            # kv_preview_id: ${{ secrets.ALFAJORES_HEALTH_KV_PREVIEW_ID }}
     
     steps:
       - name: Checkout code
@@ -53,17 +46,18 @@ jobs:
         run: |
           # Check if the HEALTH_KV namespace exists
           echo "Checking if HEALTH_KV namespace exists..."
-          KV_LIST=$(wrangler kv:namespace list --json)
+          KV_LIST=$(wrangler kv:namespace list)
           
           # Extract the namespace ID if it exists
-          HEALTH_KV_ID=$(echo $KV_LIST | jq -r '.[] | select(.title=="celo-health-checks") | .id')
-          HEALTH_KV_PREVIEW_ID=$(echo $KV_LIST | jq -r '.[] | select(.title=="celo-health-checks-preview") | .id')
+          # Parse the output which is in the format: id = "xxx" | title = "yyy"
+          HEALTH_KV_ID=$(echo "$KV_LIST" | grep "celo-health-checks" | awk -F'id = ' '{print $2}' | awk -F' ' '{print $1}' | tr -d '"')
+          HEALTH_KV_PREVIEW_ID=$(echo "$KV_LIST" | grep "celo-health-checks-preview" | awk -F'id = ' '{print $2}' | awk -F' ' '{print $1}' | tr -d '"')
           
           # Create the namespace if it doesn't exist
           if [ -z "$HEALTH_KV_ID" ]; then
             echo "Creating HEALTH_KV namespace..."
-            KV_CREATE=$(wrangler kv:namespace create "celo-health-checks" --json)
-            HEALTH_KV_ID=$(echo $KV_CREATE | jq -r '.id')
+            KV_CREATE=$(wrangler kv:namespace create "celo-health-checks")
+            HEALTH_KV_ID=$(echo "$KV_CREATE" | grep -o 'id = "[^"]*"' | awk -F'"' '{print $2}')
             echo "Created HEALTH_KV namespace with ID: $HEALTH_KV_ID"
           else
             echo "Found existing HEALTH_KV namespace with ID: $HEALTH_KV_ID"
@@ -72,8 +66,8 @@ jobs:
           # Create the preview namespace if it doesn't exist
           if [ -z "$HEALTH_KV_PREVIEW_ID" ]; then
             echo "Creating HEALTH_KV preview namespace..."
-            KV_PREVIEW_CREATE=$(wrangler kv:namespace create "celo-health-checks-preview" --json)
-            HEALTH_KV_PREVIEW_ID=$(echo $KV_PREVIEW_CREATE | jq -r '.id')
+            KV_PREVIEW_CREATE=$(wrangler kv:namespace create "celo-health-checks-preview")
+            HEALTH_KV_PREVIEW_ID=$(echo "$KV_PREVIEW_CREATE" | grep -o 'id = "[^"]*"' | awk -F'"' '{print $2}')
             echo "Created HEALTH_KV preview namespace with ID: $HEALTH_KV_PREVIEW_ID"
           else
             echo "Found existing HEALTH_KV preview namespace with ID: $HEALTH_KV_PREVIEW_ID"
