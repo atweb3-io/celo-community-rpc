@@ -47,15 +47,57 @@ async function getHealthyBackends(env) {
  * @returns {Promise<void>}
  */
 async function markBackendUnhealthy(env, backend, reason) {
-  // If HEALTH_KV is not available, do nothing
-  if (!env || !env.HEALTH_KV) {
-    console.warn(`Cannot mark backend ${backend} as unhealthy: HEALTH_KV not available`);
-    return;
+  try {
+    // Check if env and HEALTH_KV are available
+    if (!env) {
+      console.warn(`Cannot mark backend ${backend} as unhealthy: env not available`);
+      return;
+    }
+    
+    if (!env.HEALTH_KV) {
+      console.warn(`Cannot mark backend ${backend} as unhealthy: HEALTH_KV not available`);
+      
+      // Even though we can't mark it in KV, we should still log it as unhealthy
+      // This ensures the error is properly reported
+      console.error(`Backend ${backend} is unhealthy: ${reason}`);
+      
+      // Store in memory as a fallback (will be lost on worker restart)
+      if (typeof globalThis.UNHEALTHY_BACKENDS === 'undefined') {
+        globalThis.UNHEALTHY_BACKENDS = new Map();
+      }
+      
+      globalThis.UNHEALTHY_BACKENDS.set(backend, {
+        reason,
+        timestamp: Date.now()
+      });
+      
+      return;
+    }
+    
+    // Mark the backend as down for 5 minutes in KV
+    await env.HEALTH_KV.put(`down:${backend}`, reason, { expirationTtl: HEALTH_CHECK_COOLDOWN_MS / 1000 });
+    console.warn(`Backend ${backend} marked as unhealthy in KV: ${reason}`);
+    
+    // Purge the health endpoint cache and update health status
+    try {
+      // Purge the health endpoint cache
+      const cache = caches.default;
+      if (cache) {
+        const cacheUrl = new URL('https://health.celo-community.org/');
+        const cacheKey = new Request(cacheUrl.toString());
+        await cache.delete(cacheKey);
+        console.log('Purged health endpoint cache due to backend failure');
+      }
+    } catch (cacheError) {
+      // Non-critical error, just log it
+      console.error('Error purging health status cache:', cacheError);
+    }
+  } catch (error) {
+    console.error(`Error in markBackendUnhealthy for ${backend}: ${error.message}`);
+    
+    // Ensure we still log the unhealthy backend even if there's an error
+    console.error(`Backend ${backend} is unhealthy (not marked in KV): ${reason}`);
   }
-  
-  // Mark the backend as down for 5 minutes
-  await env.HEALTH_KV.put(`down:${backend}`, reason, { expirationTtl: HEALTH_CHECK_COOLDOWN_MS / 1000 });
-  console.warn(`Backend ${backend} marked as unhealthy: ${reason}`);
   
   // Purge the health endpoint cache and update health status
   try {
