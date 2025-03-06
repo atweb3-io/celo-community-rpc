@@ -1,6 +1,8 @@
 import { handleRequest } from './config.js';
 
-addEventListener('fetch', event => {
-  // Pass env and ctx directly to handleRequest like in health-check-worker
-  event.respondWith(handleRequest(event.request, event.env, event.ctx));
-});
+// Use the same pattern as the health-check-worker
+export default {
+  async fetch(request, env, ctx) {
+    return handleRequest(request, env, ctx);
+  }
+};
