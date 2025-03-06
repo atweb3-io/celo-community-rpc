@@ -54,16 +54,31 @@ async function markBackendUnhealthy(env, backend, reason) {
       return;
     }
     
-    // Try to access HEALTH_KV directly
-    try {
-      // Mark the backend as down for 5 minutes in KV
-      await env.HEALTH_KV.put(`down:${backend}`, reason, { expirationTtl: HEALTH_CHECK_COOLDOWN_MS / 1000 });
-      console.warn(`Backend ${backend} marked as unhealthy in KV: ${reason}`);
-    } catch (kvError) {
-      // If there's an error accessing HEALTH_KV, log it and use the in-memory fallback
-      console.warn(`Cannot mark backend ${backend} as unhealthy in KV: ${kvError.message}`);
+    // Check if HEALTH_KV is defined before attempting to use it
+    if (env.HEALTH_KV) {
+      try {
+        // Mark the backend as down for 5 minutes in KV
+        await env.HEALTH_KV.put(`down:${backend}`, reason, { expirationTtl: HEALTH_CHECK_COOLDOWN_MS / 1000 });
+        console.warn(`Backend ${backend} marked as unhealthy in KV: ${reason}`);
+      } catch (kvError) {
+        // If there's an error accessing HEALTH_KV, log it and use the in-memory fallback
+        console.warn(`Cannot mark backend ${backend} as unhealthy in KV: ${kvError.message}`);
+        console.error(`Backend ${backend} is unhealthy: ${reason}`);
+        
+        // Use in-memory fallback
+        useInMemoryFallback(backend, reason);
+      }
+    } else {
+      // HEALTH_KV is not defined, log it and use the in-memory fallback
+      console.warn(`Cannot mark backend ${backend} as unhealthy: HEALTH_KV not available`);
       console.error(`Backend ${backend} is unhealthy: ${reason}`);
       
+      // Use in-memory fallback
+      useInMemoryFallback(backend, reason);
+    }
+    
+    // Helper function to store unhealthy backend in memory
+    function useInMemoryFallback(backend, reason) {
       // Store in memory as a fallback (will be lost on worker restart)
       if (typeof globalThis.UNHEALTHY_BACKENDS === 'undefined') {
         globalThis.UNHEALTHY_BACKENDS = new Map();
