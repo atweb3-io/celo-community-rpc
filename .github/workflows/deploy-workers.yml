@@ -107,27 +107,23 @@ jobs:
           # Verify that the KV namespace binding is present in wrangler.toml
           if ! grep -q "binding = \"HEALTH_KV\"" wrangler.toml; then
             echo "Adding HEALTH_KV binding to wrangler.toml..."
-            cat >> wrangler.toml << 'EOF'
-
-# KV namespace for tracking backend health status
-[[kv_namespaces]]
-binding = "HEALTH_KV"
-id = "${HEALTH_KV_ID}"
-preview_id = "${HEALTH_KV_PREVIEW_ID}"
-EOF
+            echo "" >> wrangler.toml
+            echo "# KV namespace for tracking backend health status" >> wrangler.toml
+            echo "[[kv_namespaces]]" >> wrangler.toml
+            echo "binding = \"HEALTH_KV\"" >> wrangler.toml
+            echo "id = \"$HEALTH_KV_ID\"" >> wrangler.toml
+            echo "preview_id = \"$HEALTH_KV_PREVIEW_ID\"" >> wrangler.toml
           fi
           
           # Verify that the service binding is present in wrangler.toml
           if ! grep -q "binding = \"HEALTH_CHECK_WORKER\"" wrangler.toml; then
             echo "Adding HEALTH_CHECK_WORKER binding to wrangler.toml..."
-            cat >> wrangler.toml << 'EOF'
-
-# Service binding for direct communication with the health check worker
-[[services]]
-binding = "HEALTH_CHECK_WORKER"
-service = "celo-health-check"
-environment = "production"
-EOF
+            echo "" >> wrangler.toml
+            echo "# Service binding for direct communication with the health check worker" >> wrangler.toml
+            echo "[[services]]" >> wrangler.toml
+            echo "binding = \"HEALTH_CHECK_WORKER\"" >> wrangler.toml
+            echo "service = \"celo-health-check\"" >> wrangler.toml
+            echo "environment = \"production\"" >> wrangler.toml
           fi
           
           # Deploy the worker
