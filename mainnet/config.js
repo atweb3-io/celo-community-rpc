@@ -86,9 +86,6 @@ async function markBackendUnhealthy(env, backend, reason) {
     console.error(`Error storing unhealthy backend in KV: ${kvError.message}`);
   }
   
-  // Purge health cache to ensure health status page is updated
-  await purgeHealthCache(env);
-  
   // Use service binding to notify health check worker if available
   if (env && env.HEALTH_CHECK_WORKER) {
     try {
@@ -105,70 +102,6 @@ async function markBackendUnhealthy(env, backend, reason) {
 }
 
 // Removed syncUnhealthyBackendsFromKV function as part of simplification
-
-/**
- * Purge the health endpoint cache
- * @param {Object} env - Environment variables and bindings
- * @returns {Promise<void>}
- */
-async function purgeHealthCache(env) {
-  try {
-    // Check if we're in a Cloudflare Worker environment with cache API
-    if (typeof caches !== 'undefined' && caches.default) {
-      try {
-        // Purge the health endpoint cache
-        const cache = caches.default;
-        const cacheUrl = new URL('https://health.celo-community.org/');
-        const cacheKey = new Request(cacheUrl.toString());
-        
-        // Try to delete the cache entry
-        const deleted = await cache.delete(cacheKey);
-        
-        if (deleted) {
-          console.log('Successfully purged health endpoint cache due to backend failure');
-        } else {
-          console.log('No cache entry found to purge for health endpoint');
-        }
-        
-        // Also try to purge using fetch with cache-control: no-cache
-        try {
-          const purgeResponse = await fetch(cacheUrl.toString(), {
-            method: 'GET',
-            headers: {
-              'Cache-Control': 'no-cache',
-              'Pragma': 'no-cache'
-            }
-          });
-          
-          if (purgeResponse.ok) {
-            console.log('Sent cache-busting request to health endpoint');
-          }
-        } catch (fetchError) {
-          console.warn('Error sending cache-busting request:', fetchError.message);
-        }
-        
-        // If health check worker service binding is available, use it
-        if (env && env.HEALTH_CHECK_WORKER) {
-          try {
-            const refreshResponse = await env.HEALTH_CHECK_WORKER.fetch(new Request('https://health.celo-community.org/refresh'));
-            if (refreshResponse.ok) {
-              console.log('Successfully triggered health check worker refresh');
-            }
-          } catch (bindingError) {
-            console.warn('Error using service binding:', bindingError.message);
-          }
-        }
-      } catch (cacheError) {
-        console.warn('Error accessing Cloudflare cache:', cacheError.message);
-      }
-    } else {
-      console.warn('Cloudflare cache API not available, skipping cache purge');
-    }
-  } catch (error) {
-    // Non-critical error, just log it
-    console.error('Error purging health status cache:', error);
-  }
-}
 
 /**
  * Check if an RPC error indicates a health issue
