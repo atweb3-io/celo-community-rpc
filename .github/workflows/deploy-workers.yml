@@ -109,7 +109,7 @@ jobs:
               echo "Uploading validator addresses for $network to STATIC_CONTENT_KV..."
               
               # Install jq for JSON processing
-              apt-get update && apt-get install -y jq
+              sudo apt-get update && sudo apt-get install -y jq
               
               # Upload the entire validator-addresses.json file to the STATIC_CONTENT_KV namespace
               echo "Uploading $network/validator-addresses.json to STATIC_CONTENT_KV"
@@ -121,7 +121,6 @@ jobs:
           
           # Replace environment variables in wrangler.toml
           sed -i "s/\$CLOUDFLARE_ACCOUNT_ID/${{ secrets.CLOUDFLARE_ACCOUNT_ID }}/g" health-check-worker-wrangler.toml
-          sed -i "s/\$CLOUDFLARE_ZONE_ID/${{ secrets.CLOUDFLARE_ZONE_ID }}/g" health-check-worker-wrangler.toml
           sed -i "s/\$HEALTH_KV_ID/$HEALTH_KV_ID/g" health-check-worker-wrangler.toml
           sed -i "s/\$HEALTH_KV_PREVIEW_ID/$HEALTH_KV_PREVIEW_ID/g" health-check-worker-wrangler.toml
           sed -i "s/\$STATIC_CONTENT_KV_ID/$STATIC_CONTENT_KV_ID/g" health-check-worker-wrangler.toml
