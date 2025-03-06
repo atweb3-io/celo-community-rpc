@@ -48,17 +48,20 @@ async function getHealthyBackends(env) {
  */
 async function markBackendUnhealthy(env, backend, reason) {
   try {
-    // Check if env and HEALTH_KV are available
+    // Check if env is available
     if (!env) {
       console.warn(`Cannot mark backend ${backend} as unhealthy: env not available`);
       return;
     }
     
-    if (!env.HEALTH_KV) {
-      console.warn(`Cannot mark backend ${backend} as unhealthy: HEALTH_KV not available`);
-      
-      // Even though we can't mark it in KV, we should still log it as unhealthy
-      // This ensures the error is properly reported
+    // Try to access HEALTH_KV directly
+    try {
+      // Mark the backend as down for 5 minutes in KV
+      await env.HEALTH_KV.put(`down:${backend}`, reason, { expirationTtl: HEALTH_CHECK_COOLDOWN_MS / 1000 });
+      console.warn(`Backend ${backend} marked as unhealthy in KV: ${reason}`);
+    } catch (kvError) {
+      // If there's an error accessing HEALTH_KV, log it and use the in-memory fallback
+      console.warn(`Cannot mark backend ${backend} as unhealthy in KV: ${kvError.message}`);
       console.error(`Backend ${backend} is unhealthy: ${reason}`);
       
       // Store in memory as a fallback (will be lost on worker restart)
@@ -70,13 +73,7 @@ async function markBackendUnhealthy(env, backend, reason) {
         reason,
         timestamp: Date.now()
       });
-      
-      return;
     }
-    
-    // Mark the backend as down for 5 minutes in KV
-    await env.HEALTH_KV.put(`down:${backend}`, reason, { expirationTtl: HEALTH_CHECK_COOLDOWN_MS / 1000 });
-    console.warn(`Backend ${backend} marked as unhealthy in KV: ${reason}`);
     
     // Purge the health endpoint cache and update health status
     try {
