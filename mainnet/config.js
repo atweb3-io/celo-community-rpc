@@ -165,10 +165,13 @@ function getNextBackend(backends = backendList) {
 /**
  * Handle JSON-RPC requests in a way compatible with Ethereum's geth
  * @param {Request} request - The incoming request
- * @param {Object} env - Environment variables and bindings
+ * @param {Object} event - The fetch event object containing environment bindings
  * @returns {Response} - The response to send back
  */
-export async function handleRequest(request, env) {
+export async function handleRequest(request, event) {
+  // Extract environment bindings from the event object
+  const env = event && event.env ? event.env : {};
+  
   // Apply rate limiting based on client IP if rate limiter is available
   if (env && env.MY_RATE_LIMITER) {
     const ipAddress = request.headers.get("cf-connecting-ip") || "";
