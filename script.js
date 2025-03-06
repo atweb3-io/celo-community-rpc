@@ -338,12 +338,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                 // Show when the data was generated vs when it was fetched
                 if (data.timestamp) {
                     const dataTime = new Date(data.timestamp);
-                    lastUpdatedElement.textContent = `Data from: ${dataTime.toLocaleTimeString()}`;
+                    lastUpdatedElement.textContent = `Data collected: ${dataTime.toLocaleTimeString()}`;
                     
                     // If there's a generated timestamp (different from data timestamp), show it
                     if (data.generated && data.generated !== data.timestamp) {
                         const generatedTime = new Date(data.generated);
-                        lastUpdatedElement.textContent += ` | Generated: ${generatedTime.toLocaleTimeString()}`;
+                        lastUpdatedElement.textContent += ` | Response generated: ${generatedTime.toLocaleTimeString()}`;
                     }
                     
                     // If there's a served timestamp (from cache), show it
@@ -359,6 +359,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                     
                     // Show fetch time
                     lastUpdatedElement.textContent += ` | Fetched: ${now.toLocaleTimeString()}`;
+                    
+                    // Add tooltip with metadata explanation if available
+                    if (data._metadata) {
+                        lastUpdatedElement.title = Object.entries(data._metadata)
+                            .map(([key, value]) => `${key.replace('_info', '')}: ${value}`)
+                            .join('\n');
+                    }
                 } else {
                     // Fallback if no timestamp in data
                     lastUpdatedElement.textContent = `Fetched: ${now.toLocaleTimeString()}`;
