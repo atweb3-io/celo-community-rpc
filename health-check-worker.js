@@ -177,6 +177,9 @@ export default {
     const etag = `"${results.timestamp}"`;
     const lastModified = new Date(results.timestamp).toUTCString();
     
+    // Create the current time for the served timestamp
+    const servedTime = new Date().toISOString();
+    
     // Create a new response with appropriate headers
     const response = new Response(JSON.stringify(results, null, 2), {
       headers: {
@@ -187,7 +190,7 @@ export default {
         'Last-Modified': lastModified,
         'Vary': 'Accept-Encoding, Origin', // Vary header to ensure proper caching with different encodings
         'X-Cache-Status': 'MISS', // Will be overwritten by CF for cache hits
-        'X-Served-Time': now.toISOString(), // When this response was served
+        'X-Served-Time': servedTime, // When this response was served
       },
     });
     
