@@ -317,7 +317,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             // Set up fetch options with cache control
             const fetchOptions = {
                 cache: forceRefresh ? 'reload' : 'default',
-                headers: forceRefresh ? { 'Cache-Control': 'no-cache' } : {}
+                headers: forceRefresh ? {
+                    'Cache-Control': 'no-cache',
+                    'X-Requested-With': 'XMLHttpRequest' // Add this header for manual refreshes
+                } : {}
             };
             
             // Fetch health status data
