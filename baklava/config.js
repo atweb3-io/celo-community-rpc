@@ -1,6 +1,5 @@
 // Baklava testnet configuration
 import { backendList } from './rpc-servers.js';
-import { debugKvNamespace } from '../debug-kv-issue.js';
 
 // Constants
 const REQUEST_TIMEOUT_MS = 30000; // 30 seconds
@@ -29,32 +28,22 @@ async function getHealthyBackends(env) {
   
   if (!env.HEALTH_KV) {
     console.warn('HEALTH_KV binding is not available, using all backends');
-    console.log('Available bindings:', Object.keys(env).join(', '));
     return [...backendList];
   }
-  
-  console.log('HEALTH_KV binding is available, checking backend health');
   
   // Process each backend
   for (const backend of backendList) {
     try {
       // Check if the backend is marked as down in KV
-      console.log(`Checking if backend ${backend} is down in KV...`);
       const isDown = await env.HEALTH_KV.get(`down:${backend}`);
-      console.log(`KV result for down:${backend}: ${isDown}`);
       
       if (!isDown) {
         // Backend is not marked as unhealthy in KV, so it's healthy
-        console.log(`Backend ${backend} is healthy (not marked as down in KV)`);
         healthyBackends.push(backend);
-      } else {
-        console.log(`Backend ${backend} is marked as unhealthy in KV: ${isDown}`);
       }
     } catch (error) {
-      console.error(`Error checking KV for backend ${backend}:`, error);
-      console.error(`Error details: ${error.message}, stack: ${error.stack}`);
+      console.error(`Error checking KV for backend ${backend}: ${error.message}`);
       // If there's an error checking KV, assume the backend is healthy
-      console.log(`Adding backend ${backend} to healthy list despite KV error`);
       healthyBackends.push(backend);
     }
   }
@@ -87,22 +76,14 @@ async function markBackendUnhealthy(env, backend, reason) {
   
   if (!env.HEALTH_KV) {
     console.warn(`HEALTH_KV binding is not available, cannot mark backend ${backend} as unhealthy`);
-    console.log('Available bindings:', Object.keys(env).join(', '));
     return;
   }
   
-  console.log(`HEALTH_KV binding is available, marking backend ${backend} as unhealthy`);
-  
   try {
-    console.log(`Putting key down:${backend} with value ${reason} in KV...`);
     const expirationTtl = Math.floor(HEALTH_CHECK_COOLDOWN_MS / 1000);
-    console.log(`Using expiration TTL: ${expirationTtl} seconds`);
-    
     await env.HEALTH_KV.put(`down:${backend}`, reason, { expirationTtl });
-    console.log(`Successfully stored unhealthy backend ${backend} in KV: ${reason}`);
   } catch (kvError) {
-    console.error(`Error storing unhealthy backend in KV:`, kvError);
-    console.error(`Error details: ${kvError.message}, stack: ${kvError.stack}`);
+    console.error(`Error storing unhealthy backend in KV: ${kvError.message}`);
   }
   
   // Purge health cache to ensure health status page is updated
@@ -240,9 +221,6 @@ function getNextBackend(backends = backendList) {
  * @returns {Response} - The response to send back
  */
 export async function handleRequest(request, env, ctx) {
-  // Debug KV namespace
-  debugKvNamespace(env);
-  
   // Direct access to env like in health-check-worker
   
   // Apply rate limiting based on client IP if rate limiter is available

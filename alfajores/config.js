@@ -21,8 +21,13 @@ async function getHealthyBackends(env) {
   // This follows the pattern used in the health-check-worker
   
   // Check if KV is available
-  if (!env || !env.HEALTH_KV) {
-    console.warn('HEALTH_KV not available, using all backends');
+  if (!env) {
+    console.warn('Environment object is not available, using all backends');
+    return [...backendList];
+  }
+  
+  if (!env.HEALTH_KV) {
+    console.warn('HEALTH_KV binding is not available, using all backends');
     return [...backendList];
   }
   
@@ -35,11 +40,9 @@ async function getHealthyBackends(env) {
       if (!isDown) {
         // Backend is not marked as unhealthy in KV, so it's healthy
         healthyBackends.push(backend);
-      } else {
-        console.log(`Backend ${backend} is marked as unhealthy in KV: ${isDown}`);
       }
     } catch (error) {
-      console.warn(`Error checking KV for backend ${backend}: ${error.message}`);
+      console.error(`Error checking KV for backend ${backend}: ${error.message}`);
       // If there's an error checking KV, assume the backend is healthy
       healthyBackends.push(backend);
     }
@@ -66,15 +69,21 @@ async function markBackendUnhealthy(env, backend, reason) {
   console.log(`Marking backend ${backend} as unhealthy: ${reason}`);
   
   // Store in KV if available - simplified approach like health-check-worker
-  if (env && env.HEALTH_KV) {
-    try {
-      await env.HEALTH_KV.put(`down:${backend}`, reason, { expirationTtl: Math.floor(HEALTH_CHECK_COOLDOWN_MS / 1000) });
-      console.log(`Stored unhealthy backend ${backend} in KV: ${reason}`);
-    } catch (kvError) {
-      console.error(`Error storing unhealthy backend in KV: ${kvError.message}`);
-    }
-  } else {
-    console.warn(`HEALTH_KV not available, cannot mark backend ${backend} as unhealthy`);
+  if (!env) {
+    console.warn(`Environment object is not available, cannot mark backend ${backend} as unhealthy`);
+    return;
+  }
+  
+  if (!env.HEALTH_KV) {
+    console.warn(`HEALTH_KV binding is not available, cannot mark backend ${backend} as unhealthy`);
+    return;
+  }
+  
+  try {
+    const expirationTtl = Math.floor(HEALTH_CHECK_COOLDOWN_MS / 1000);
+    await env.HEALTH_KV.put(`down:${backend}`, reason, { expirationTtl });
+  } catch (kvError) {
+    console.error(`Error storing unhealthy backend in KV: ${kvError.message}`);
   }
   
   // Purge health cache to ensure health status page is updated
