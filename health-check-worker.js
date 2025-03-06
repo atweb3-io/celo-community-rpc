@@ -34,8 +34,9 @@ export default {
         console.log('Cleared KV cached health status');
         
         // Update the health status timestamp when running the scheduled check
+        // This timestamp will be used as the official timestamp for the health data
         const newTimestamp = new Date().toISOString();
-        await env.HEALTH_KV.put('health_status_timestamp', newTimestamp, { expirationTtl: 300 });
+        await env.HEALTH_KV.put('health_status_timestamp', newTimestamp);
         console.log(`Updated health status timestamp to ${newTimestamp}`);
       } catch (error) {
         console.error('Error updating KV store:', error);
@@ -237,14 +238,8 @@ async function getHealthStatus(env) {
       // If no cached response exists, generate a new one
       console.log('No cached health status found, generating new one');
       
-      // Get the timestamp (or create a new one)
-      const storedTimestamp = await env.HEALTH_KV.get('health_status_timestamp');
-      if (storedTimestamp) {
-        timestamp = storedTimestamp;
-      } else {
-        // Store the new timestamp
-        await env.HEALTH_KV.put('health_status_timestamp', timestamp, { expirationTtl: CACHE_TTL_SECONDS });
-      }
+      // We'll calculate the timestamp based on the lastChecked values of the backends
+      // This ensures the timestamp is consistent with the backend data
     } catch (error) {
       console.error('Error accessing KV store:', error);
       // Continue with default timestamp
