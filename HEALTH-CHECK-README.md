@@ -221,6 +221,7 @@ The health check system includes several optimizations to minimize KV operations
    - **Cloudflare Cache API**: Leverages Cloudflare's global CDN for edge caching
      - Responses are cached at the edge for 5 minutes using `s-maxage=300`
      - Cache is directly purged using the Cache API during scheduled health checks
+     - Cache is also purged immediately when a backend is marked as unhealthy by an RPC worker
      - No external API calls required for cache management
    - **KV Store Caching**: Provides a fallback when edge cache misses occur
      - The entire health status response is cached in KV for 5 minutes
@@ -232,8 +233,8 @@ The health check system includes several optimizations to minimize KV operations
      - Vary headers to handle different encodings and origins
    - **Client-side Features**:
      - Cache bypass option with `Cache-Control: no-cache` header
-     - UI clearly shows data timestamp, generation time, served time, and fetch time
-     - Cache status is indicated in the UI with a "(cached)" label
+     - UI clearly shows data timestamp and fetch time
+     - Cache status is indicated in the UI with Cloudflare's CF-Cache-Status header
 
 These optimizations help reduce the number of KV operations and improve the overall performance of the health check system while maintaining a good balance between data freshness and efficiency.
 

@@ -56,6 +56,25 @@ async function markBackendUnhealthy(env, backend, reason) {
   // Mark the backend as down for 5 minutes
   await env.HEALTH_KV.put(`down:${backend}`, reason, { expirationTtl: HEALTH_CHECK_COOLDOWN_MS / 1000 });
   console.warn(`Backend ${backend} marked as unhealthy: ${reason}`);
+  
+  // Purge the health endpoint cache and update health status
+  try {
+    // Purge the health endpoint cache
+    const cache = caches.default;
+    if (cache) {
+      const cacheUrl = new URL('https://health.celo-community.org/');
+      const cacheKey = new Request(cacheUrl.toString());
+      await cache.delete(cacheKey);
+      console.log('Purged health endpoint cache due to backend failure');
+      
+      // Generate new health status by calling the health check worker's getHealthStatus function
+      // We can't directly call that function, so we'll just let the cache be purged
+      // The next request to the health endpoint will generate a fresh response
+    }
+  } catch (error) {
+    // Non-critical error, just log it
+    console.error('Error purging health status cache:', error);
+  }
 }
 
 /**
