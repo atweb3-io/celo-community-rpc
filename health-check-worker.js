@@ -186,6 +186,8 @@ export default {
         'ETag': etag,
         'Last-Modified': lastModified,
         'Vary': 'Accept-Encoding, Origin', // Vary header to ensure proper caching with different encodings
+        'X-Cache-Status': 'MISS', // Will be overwritten by CF for cache hits
+        'X-Served-Time': now.toISOString(), // When this response was served
       },
     });
     
@@ -229,19 +231,10 @@ async function getHealthStatus(env) {
       // Try to get the cached health status from KV
       cachedHealthStatus = await env.HEALTH_KV.get('health_status_cache', { type: 'json' });
       
-      // If we have a valid cached response, return it with updated metadata
+      // If we have a valid cached response, return it
       if (cachedHealthStatus) {
-        // Add metadata to explain the timestamps
-        return {
-          ...cachedHealthStatus,
-          cached: true,
-          served: now.toISOString(),
-          _metadata: {
-            timestamp_info: "When the health data was last collected during scheduled check",
-            generated_info: "When the response was originally generated",
-            served_info: "When this cached response was served"
-          }
-        };
+        // Don't modify the cached response body - this would break caching
+        return cachedHealthStatus;
       }
       
       // If no cached response exists, generate a new one

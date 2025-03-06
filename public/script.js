@@ -329,6 +329,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                 throw new Error(`HTTP error! Status: ${response.status}`);
             }
             
+            // Get cache status and served time from headers
+            const cacheStatus = response.headers.get('X-Cache-Status');
+            const servedTime = response.headers.get('X-Served-Time');
+            const cfCache = response.headers.get('CF-Cache-Status');
+            
             const data = await response.json();
             
             // Update last updated time
@@ -346,17 +351,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                         lastUpdatedElement.textContent += ` | Response generated: ${generatedTime.toLocaleTimeString()}`;
                     }
                     
-                    // If there's a served timestamp (from cache), show it
-                    if (data.served) {
-                        const servedTime = new Date(data.served);
-                        lastUpdatedElement.textContent += ` | Served: ${servedTime.toLocaleTimeString()}`;
-                        
-                        // Show if this was a cached response
-                        if (data.cached) {
-                            lastUpdatedElement.textContent += ` (cached)`;
-                        }
-                    }
-                    
                     // Show fetch time
                     lastUpdatedElement.textContent += ` | Fetched: ${now.toLocaleTimeString()}`;
                     
@@ -369,6 +363,19 @@ document.addEventListener('DOMContentLoaded', async () => {
                 } else {
                     // Fallback if no timestamp in data
                     lastUpdatedElement.textContent = `Fetched: ${now.toLocaleTimeString()}`;
+                }
+                
+                // Show cache information from headers
+                if (servedTime) {
+                    const servedDate = new Date(servedTime);
+                    lastUpdatedElement.textContent += ` | Served: ${servedDate.toLocaleTimeString()}`;
+                }
+                
+                // Show Cloudflare cache status if available
+                if (cfCache) {
+                    lastUpdatedElement.textContent += ` (CF-Cache: ${cfCache})`;
+                } else if (cacheStatus) {
+                    lastUpdatedElement.textContent += ` (Cache: ${cacheStatus})`;
                 }
                 
                 // If we got a cached response, show that in the UI
