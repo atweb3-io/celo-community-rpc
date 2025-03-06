@@ -23,3 +23,9 @@ simple = { limit = 1000, period = 60 }
 binding = "HEALTH_KV"
 id = "$HEALTH_KV_ID"
 preview_id = "$HEALTH_KV_PREVIEW_ID"
+
+# Service binding for direct communication with the health check worker
+[[services]]
+binding = "HEALTH_CHECK_WORKER"
+service = "celo-health-check"
+environment = "production"

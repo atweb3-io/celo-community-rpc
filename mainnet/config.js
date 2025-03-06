@@ -17,88 +17,31 @@ let currentBackendIndex = 0;
 async function getHealthyBackends(env) {
   const healthyBackends = [];
   
-  // Use a more reliable approach for in-memory storage
-  // 1. Try to use caches API if available (works in production)
-  // 2. Fall back to globalThis if caches not available (works in some environments)
-  // 3. Fall back to a local Map as last resort (works only for current request)
+  // Simplified approach: primarily rely on KV storage with minimal in-memory caching
+  // This follows the pattern used in the health-check-worker
   
-  let inMemoryUnhealthyBackends;
-  let storageType = "none";
-  
-  // Try to use Cache API first (most reliable in production)
-  if (typeof caches !== 'undefined') {
-    try {
-      const cache = caches.default;
-      const cacheKey = new Request('https://internal.celo-community.org/unhealthy-backends');
-      let cacheResponse = await cache.match(cacheKey);
-      
-      if (!cacheResponse) {
-        // Initialize cache if not exists
-        inMemoryUnhealthyBackends = new Map();
-        storageType = "cache-new";
-      } else {
-        // Parse existing cache
-        const cacheData = await cacheResponse.json();
-        inMemoryUnhealthyBackends = new Map(Object.entries(cacheData).map(([key, value]) => [key, value]));
-        storageType = "cache-existing";
-      }
-      
-      // Function to update cache
-      globalThis.updateUnhealthyBackendsCache = async (map) => {
-        const cacheData = Object.fromEntries(map);
-        const newResponse = new Response(JSON.stringify(cacheData), {
-          headers: { 'Content-Type': 'application/json' }
-        });
-        await cache.put(cacheKey, newResponse);
-      };
-      
-    } catch (cacheError) {
-      console.warn(`Error using Cache API: ${cacheError.message}, falling back to globalThis`);
-    }
+  // Check if KV is available
+  if (!env || !env.HEALTH_KV) {
+    console.warn('HEALTH_KV not available, using all backends');
+    return [...backendList];
   }
   
-  // Fall back to globalThis if caches not available or failed
-  if (typeof globalThis.UNHEALTHY_BACKENDS === 'undefined') {
-    globalThis.UNHEALTHY_BACKENDS = new Map();
-  }
-  
-  // Initialize with globalThis storage if we don't have a cache
-  if (!inMemoryUnhealthyBackends) {
-    inMemoryUnhealthyBackends = globalThis.UNHEALTHY_BACKENDS;
-    storageType = "globalThis";
-  }
-  
-  // Sync from KV to in-memory storage if KV is available
-  try {
-    if (env && env.HEALTH_KV) {
-      await syncUnhealthyBackendsFromKV(env, inMemoryUnhealthyBackends);
-    }
-  } catch (syncError) {
-    console.warn(`Error syncing from KV: ${syncError.message}`);
-  }
-  
-  // Filter out backends that are marked as unhealthy
+  // Process each backend
   for (const backend of backendList) {
-    const unhealthyInfo = inMemoryUnhealthyBackends.get(backend);
-    
-    if (!unhealthyInfo) {
-      // Backend is not in the unhealthy list, so it's healthy
+    try {
+      // Check if the backend is marked as down in KV
+      const isDown = await env.HEALTH_KV.get(`down:${backend}`);
+      
+      if (!isDown) {
+        // Backend is not marked as unhealthy in KV, so it's healthy
+        healthyBackends.push(backend);
+      } else {
+        console.log(`Backend ${backend} is marked as unhealthy in KV: ${isDown}`);
+      }
+    } catch (error) {
+      console.warn(`Error checking KV for backend ${backend}: ${error.message}`);
+      // If there's an error checking KV, assume the backend is healthy
       healthyBackends.push(backend);
-      continue;
-    }
-    
-    // Check if the cooldown period has passed
-    const now = Date.now();
-    const timeSinceMarked = now - unhealthyInfo.timestamp;
-    
-    if (timeSinceMarked > HEALTH_CHECK_COOLDOWN_MS) {
-      // Cooldown period has passed, consider it healthy again
-      inMemoryUnhealthyBackends.delete(backend);
-      healthyBackends.push(backend);
-      console.log(`Backend ${backend} cooldown period passed, marking as healthy again`);
-    } else {
-      // Still in cooldown period, keep it marked as unhealthy
-      console.log(`Backend ${backend} still in cooldown period (${Math.round((HEALTH_CHECK_COOLDOWN_MS - timeSinceMarked) / 1000)}s remaining)`);
     }
   }
   
@@ -122,7 +65,7 @@ async function getHealthyBackends(env) {
 async function markBackendUnhealthy(env, backend, reason) {
   console.log(`Marking backend ${backend} as unhealthy: ${reason}`);
   
-  // Store in KV if available
+  // Store in KV if available - simplified approach like health-check-worker
   if (env && env.HEALTH_KV) {
     try {
       await env.HEALTH_KV.put(`down:${backend}`, reason, { expirationTtl: Math.floor(HEALTH_CHECK_COOLDOWN_MS / 1000) });
@@ -130,103 +73,29 @@ async function markBackendUnhealthy(env, backend, reason) {
     } catch (kvError) {
       console.error(`Error storing unhealthy backend in KV: ${kvError.message}`);
     }
-  }
-  
-  // Store in in-memory cache
-  try {
-    // Try to use Cache API first
-    if (typeof caches !== 'undefined' && caches.default) {
-      try {
-        const cache = caches.default;
-        const cacheKey = new Request('https://internal.celo-community.org/unhealthy-backends');
-        let cacheResponse = await cache.match(cacheKey);
-        
-        let cacheData = {};
-        if (cacheResponse) {
-          cacheData = await cacheResponse.json();
-        }
-        
-        cacheData[backend] = {
-          reason,
-          timestamp: Date.now()
-        };
-        
-        const newResponse = new Response(JSON.stringify(cacheData), {
-          headers: { 'Content-Type': 'application/json' }
-        });
-        
-        await cache.put(cacheKey, newResponse);
-        console.log(`Stored unhealthy backend ${backend} in cache: ${reason}`);
-      } catch (cacheError) {
-        console.warn(`Error using Cache API: ${cacheError.message}, falling back to globalThis`);
-      }
-    }
-    
-    // Fall back to globalThis
-    if (typeof globalThis.UNHEALTHY_BACKENDS === 'undefined') {
-      globalThis.UNHEALTHY_BACKENDS = new Map();
-    }
-    
-    globalThis.UNHEALTHY_BACKENDS.set(backend, {
-      reason,
-      timestamp: Date.now()
-    });
-    
-    console.log(`Stored unhealthy backend ${backend} in globalThis storage: ${reason}`);
-  } catch (error) {
-    console.error(`Error marking backend as unhealthy: ${error.message}`);
+  } else {
+    console.warn(`HEALTH_KV not available, cannot mark backend ${backend} as unhealthy`);
   }
   
   // Purge health cache to ensure health status page is updated
   await purgeHealthCache(env);
+  
+  // Use service binding to notify health check worker if available
+  if (env && env.HEALTH_CHECK_WORKER) {
+    try {
+      const refreshResponse = await env.HEALTH_CHECK_WORKER.fetch(
+        new Request('https://health.celo-community.org/refresh')
+      );
+      if (refreshResponse.ok) {
+        console.log('Successfully triggered health check worker refresh');
+      }
+    } catch (bindingError) {
+      console.warn(`Error using service binding: ${bindingError.message}`);
+    }
+  }
 }
 
-/**
- * Sync unhealthy backends from KV to in-memory cache
- * @param {Object} env - Environment variables and bindings
- * @param {Map} inMemoryStorage - The in-memory storage to update
- * @returns {Promise<void>}
- */
-async function syncUnhealthyBackendsFromKV(env, inMemoryStorage) {
-  if (!env || !env.HEALTH_KV) return;
-  if (!inMemoryStorage) {
-    console.warn('No in-memory storage provided for syncUnhealthyBackendsFromKV');
-    return;
-  }
-  
-  try {
-    // Get all keys with prefix "down:"
-    const listResult = await env.HEALTH_KV.list({ prefix: 'down:' });
-    
-    if (listResult && listResult.keys && listResult.keys.length > 0) {
-      // Update in-memory cache
-      for (const key of listResult.keys) {
-        const backend = key.name.replace('down:', '');
-        const reason = await env.HEALTH_KV.get(key.name);
-        
-        if (reason) {
-          inMemoryStorage.set(backend, {
-            reason,
-            timestamp: Date.now()
-          });
-          console.log(`Synced unhealthy backend from KV to memory: ${backend}`);
-        }
-      }
-      
-      // Update cache if we're using Cache API
-      if (typeof globalThis.updateUnhealthyBackendsCache === 'function') {
-        await globalThis.updateUnhealthyBackendsCache(inMemoryStorage);
-      }
-      
-      console.log(`Synced ${listResult.keys.length} unhealthy backends from KV to memory`);
-    } else {
-      console.log('No unhealthy backends found in KV');
-    }
-  } catch (error) {
-    console.error('Error syncing unhealthy backends from KV:', error);
-    throw error; // Re-throw to allow caller to handle
-  }
-}
+// Removed syncUnhealthyBackendsFromKV function as part of simplification
 
 /**
  * Purge the health endpoint cache
@@ -338,12 +207,12 @@ function getNextBackend(backends = backendList) {
 /**
  * Handle JSON-RPC requests in a way compatible with Ethereum's geth
  * @param {Request} request - The incoming request
- * @param {Object} event - The fetch event object containing environment bindings
+ * @param {Object} env - Environment variables and bindings
+ * @param {Object} ctx - Context object
  * @returns {Response} - The response to send back
  */
-export async function handleRequest(request, event) {
-  // Extract environment bindings from the event object
-  const env = event && event.env ? event.env : {};
+export async function handleRequest(request, env, ctx) {
+  // Direct access to env like in health-check-worker
   
   // Apply rate limiting based on client IP if rate limiter is available
   if (env && env.MY_RATE_LIMITER) {
