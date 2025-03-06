@@ -291,25 +291,46 @@ async function getHealthStatus(env) {
 async function checkAllBackends(env) {
   const results = [];
   
+  // Check if KV store is available
+  const isKvAvailable = env && env.HEALTH_KV;
+  
   // Try to get validator addresses from celocli
-  await fetchValidatorAddresses(env);
+  if (isKvAvailable) {
+    await fetchValidatorAddresses(env);
+  } else {
+    console.warn('Skipping validator address fetch - KV not available');
+  }
   
   for (const network of NETWORKS) {
     console.log(`Checking backends for ${network.name}...`);
     
     for (const backend of network.backends) {
       try {
-        // Check if the backend is already marked as down
-        const isDown = await env.HEALTH_KV.get(`down:${backend}`);
+        let isDown = null;
+        
+        // Only check KV if it's available
+        if (isKvAvailable) {
+          try {
+            // Check if the backend is already marked as down
+            isDown = await env.HEALTH_KV.get(`down:${backend}`);
+          } catch (kvError) {
+            console.error(`Error checking if backend is down: ${kvError.message}`);
+          }
+        }
+        
         if (isDown) {
           console.log(`Backend ${backend} is currently marked as down, checking if it has recovered`);
           
           // Check if the backend has recovered
           const isHealthy = await checkBackendHealth(backend, env);
-          if (isHealthy) {
-            // If the backend has recovered, remove it from the down list
-            await env.HEALTH_KV.delete(`down:${backend}`);
-            console.log(`Backend ${backend} has recovered, removed from down list`);
+          if (isHealthy && isKvAvailable) {
+            try {
+              // If the backend has recovered, remove it from the down list
+              await env.HEALTH_KV.delete(`down:${backend}`);
+              console.log(`Backend ${backend} has recovered, removed from down list`);
+            } catch (kvError) {
+              console.error(`Error removing backend from down list: ${kvError.message}`);
+            }
           } else {
             console.log(`Backend ${backend} is still unhealthy`);
           }
@@ -322,17 +343,27 @@ async function checkAllBackends(env) {
         const isHealthy = await checkBackendHealth(backend, env);
         results.push({ network: network.name, backend, healthy: isHealthy, wasDown: false });
         
-        if (!isHealthy) {
-          // Mark as unhealthy for 5 minutes
-          await env.HEALTH_KV.put(`down:${backend}`, 'Failed active health check', { expirationTtl: HEALTH_CHECK_COOLDOWN_MS / 1000 });
-          console.error(`Active check: Backend ${backend} marked as unhealthy`);
+        if (!isHealthy && isKvAvailable) {
+          try {
+            // Mark as unhealthy for 15 minutes
+            await env.HEALTH_KV.put(`down:${backend}`, 'Failed active health check', { expirationTtl: HEALTH_CHECK_COOLDOWN_MS / 1000 });
+            console.error(`Active check: Backend ${backend} marked as unhealthy`);
+          } catch (kvError) {
+            console.error(`Error marking backend as unhealthy: ${kvError.message}`);
+          }
         }
       } catch (error) {
         console.error(`Error checking backend ${backend}: ${error.message}`);
         results.push({ network: network.name, backend, healthy: false, error: error.message });
         
-        // Mark as unhealthy for 5 minutes
-        await env.HEALTH_KV.put(`down:${backend}`, `Error: ${error.message}`, { expirationTtl: HEALTH_CHECK_COOLDOWN_MS / 1000 });
+        if (isKvAvailable) {
+          try {
+            // Mark as unhealthy for 15 minutes
+            await env.HEALTH_KV.put(`down:${backend}`, `Error: ${error.message}`, { expirationTtl: HEALTH_CHECK_COOLDOWN_MS / 1000 });
+          } catch (kvError) {
+            console.error(`Error marking backend as unhealthy: ${kvError.message}`);
+          }
+        }
       }
     }
   }
@@ -361,6 +392,20 @@ async function checkAllBackends(env) {
 async function fetchValidatorAddresses(env) {
   if (!env) return;
   
+  // Check if KV stores are available
+  const isHealthKvAvailable = env && env.HEALTH_KV;
+  const isStaticContentKvAvailable = env && env.STATIC_CONTENT_KV;
+  
+  if (!isHealthKvAvailable) {
+    console.warn('HEALTH_KV binding not available, skipping validator address fetch');
+    return;
+  }
+  
+  if (!isStaticContentKvAvailable) {
+    console.warn('STATIC_CONTENT_KV binding not available, skipping validator address fetch');
+    return;
+  }
+  
   for (const network of NETWORKS) {
     try {
       console.log(`Fetching validator addresses for ${network.name}...`);
@@ -371,38 +416,19 @@ async function fetchValidatorAddresses(env) {
         const kvKey = `${network.name}/validator-addresses`;
         let validatorAddresses = null;
         
-        // Try to get from the STATIC_CONTENT_KV namespace (if available)
-        if (env.STATIC_CONTENT_KV) {
-          try {
-            // Get the validator addresses directly from the KV store
-            const key = `${network.name}/validator-addresses.json`;
-            console.log(`Trying to get validator addresses from STATIC_CONTENT_KV with key: ${key}`);
-            
-            const content = await env.STATIC_CONTENT_KV.get(key, { type: 'text' });
-            if (content) {
-              console.log(`Found validator addresses in STATIC_CONTENT_KV for ${network.name}`);
-              validatorAddresses = JSON.parse(content);
-            } else {
-              console.warn(`No content found in STATIC_CONTENT_KV for key: ${key}`);
-              
-              // For debugging, list all keys in the KV store
-              const allKeys = await env.STATIC_CONTENT_KV.list();
-              console.log(`Available keys in STATIC_CONTENT_KV:`, JSON.stringify(allKeys));
-            }
-          } catch (kvError) {
-            console.error(`Error getting validator addresses from STATIC_CONTENT_KV:`, kvError.message);
-          }
-        } else {
-          console.warn(`STATIC_CONTENT_KV binding not available`);
-        }
-        
-        // If we couldn't get from STATIC_CONTENT_KV, we'll have to fall back to null addresses
-        // The validator-addresses.json files should be in the KV store
-        if (!validatorAddresses) {
-          console.warn(`Could not find validator addresses for ${network.name} in KV store`);
+        try {
+          // Get the validator addresses directly from the KV store
+          const key = `${network.name}/validator-addresses.json`;
+          console.log(`Trying to get validator addresses from STATIC_CONTENT_KV with key: ${key}`);
           
-          // For debugging purposes, let's log what keys are available in the STATIC_CONTENT_KV namespace
-          if (env.STATIC_CONTENT_KV) {
+          const content = await env.STATIC_CONTENT_KV.get(key, { type: 'text' });
+          if (content) {
+            console.log(`Found validator addresses in STATIC_CONTENT_KV for ${network.name}`);
+            validatorAddresses = JSON.parse(content);
+          } else {
+            console.warn(`No content found in STATIC_CONTENT_KV for key: ${key}`);
+            
+            // For debugging, list all keys in the KV store
             try {
               const allKeys = await env.STATIC_CONTENT_KV.list();
               console.log(`Available keys in STATIC_CONTENT_KV:`, JSON.stringify(allKeys));
@@ -410,8 +436,13 @@ async function fetchValidatorAddresses(env) {
               console.warn(`Error listing keys in STATIC_CONTENT_KV:`, listError.message);
             }
           }
-          
-          // We'll have to fall back to null addresses
+        } catch (kvError) {
+          console.error(`Error getting validator addresses from STATIC_CONTENT_KV:`, kvError.message);
+        }
+        
+        // If we couldn't get from STATIC_CONTENT_KV, we'll have to fall back to null addresses
+        if (!validatorAddresses) {
+          console.warn(`Could not find validator addresses for ${network.name} in KV store`);
           console.warn(`Falling back to null addresses for ${network.name}`);
         }
         
@@ -420,20 +451,24 @@ async function fetchValidatorAddresses(env) {
           const updatedAddresses = [];
           
           for (const [url, address] of Object.entries(validatorAddresses)) {
-            // Get the current value from KV
-            const currentAddress = await env.HEALTH_KV.get(`validator:${url}`);
-            
-            console.log(`Validator address for ${url}: Current=${currentAddress}, New=${address}`);
-            
-            // Make sure we're storing the address as a string, not null or undefined
-            const addressToStore = address ? address : "null";
-            
-            // Only update if the address has changed
-            if (currentAddress !== addressToStore) {
-              // Store with a long expiration time since validator addresses rarely change
-              await env.HEALTH_KV.put(`validator:${url}`, addressToStore, { expirationTtl: 86400 }); // 1 days
-              updatedAddresses.push(url);
-              console.log(`Updated validator address for ${url}: ${addressToStore}`);
+            try {
+              // Get the current value from KV
+              const currentAddress = await env.HEALTH_KV.get(`validator:${url}`);
+              
+              console.log(`Validator address for ${url}: Current=${currentAddress}, New=${address}`);
+              
+              // Make sure we're storing the address as a string, not null or undefined
+              const addressToStore = address ? address : "null";
+              
+              // Only update if the address has changed
+              if (currentAddress !== addressToStore) {
+                // Store with a long expiration time since validator addresses rarely change
+                await env.HEALTH_KV.put(`validator:${url}`, addressToStore, { expirationTtl: 86400 }); // 1 days
+                updatedAddresses.push(url);
+                console.log(`Updated validator address for ${url}: ${addressToStore}`);
+              }
+            } catch (kvError) {
+              console.error(`Error updating validator address for ${url}:`, kvError.message);
             }
           }
           
@@ -530,6 +565,9 @@ async function checkBackendHealth(backend, env) {
   console.log(`Checking health of ${backend}...`);
   const now = new Date().toISOString();
   
+  // Check if KV store is available
+  const isKvAvailable = env && env.HEALTH_KV;
+  
   try {
     // Create a JSON-RPC request to check node health
     const healthCheckRequest = {
@@ -556,7 +594,13 @@ async function checkBackendHealth(backend, env) {
     if (!response.ok) {
       console.error(`Health check failed for ${backend}: HTTP ${response.status}`);
       // Update last checked time even if unhealthy
-      if (env) await env.HEALTH_KV.put(`lastChecked:${backend}`, now);
+      if (isKvAvailable) {
+        try {
+          await env.HEALTH_KV.put(`lastChecked:${backend}`, now);
+        } catch (kvError) {
+          console.error(`Error updating lastChecked: ${kvError.message}`);
+        }
+      }
       return false;
     }
     
@@ -568,7 +612,13 @@ async function checkBackendHealth(backend, env) {
     if (data.error) {
       console.error(`Health check failed for ${backend}: RPC error: ${data.error.message}`);
       // Update last checked time even if unhealthy
-      if (env) await env.HEALTH_KV.put(`lastChecked:${backend}`, now);
+      if (isKvAvailable) {
+        try {
+          await env.HEALTH_KV.put(`lastChecked:${backend}`, now);
+        } catch (kvError) {
+          console.error(`Error updating lastChecked: ${kvError.message}`);
+        }
+      }
       return false;
     }
     
@@ -576,7 +626,13 @@ async function checkBackendHealth(backend, env) {
     if (data.result && typeof data.result === 'object') {
       console.log(`Backend ${backend} is still syncing`);
       // Update last checked time even if unhealthy
-      if (env) await env.HEALTH_KV.put(`lastChecked:${backend}`, now);
+      if (isKvAvailable) {
+        try {
+          await env.HEALTH_KV.put(`lastChecked:${backend}`, now);
+        } catch (kvError) {
+          console.error(`Error updating lastChecked: ${kvError.message}`);
+        }
+      }
       return false;
     }
     
@@ -599,7 +655,13 @@ async function checkBackendHealth(backend, env) {
     if (!blockNumberResponse.ok) {
       console.error(`Block number check failed for ${backend}: HTTP ${blockNumberResponse.status}`);
       // Update last checked time even if unhealthy
-      if (env) await env.HEALTH_KV.put(`lastChecked:${backend}`, now);
+      if (isKvAvailable) {
+        try {
+          await env.HEALTH_KV.put(`lastChecked:${backend}`, now);
+        } catch (kvError) {
+          console.error(`Error updating lastChecked: ${kvError.message}`);
+        }
+      }
       return false;
     }
     
@@ -608,7 +670,13 @@ async function checkBackendHealth(backend, env) {
     if (blockData.error) {
       console.error(`Block number check failed for ${backend}: RPC error: ${blockData.error.message}`);
       // Update last checked time even if unhealthy
-      if (env) await env.HEALTH_KV.put(`lastChecked:${backend}`, now);
+      if (isKvAvailable) {
+        try {
+          await env.HEALTH_KV.put(`lastChecked:${backend}`, now);
+        } catch (kvError) {
+          console.error(`Error updating lastChecked: ${kvError.message}`);
+        }
+      }
       return false;
     }
     
@@ -616,9 +684,13 @@ async function checkBackendHealth(backend, env) {
     console.log(`Backend ${backend} is at block ${blockNumber}`);
     
     // Store block height and last checked time in KV store
-    if (env) {
-      await env.HEALTH_KV.put(`blockHeight:${backend}`, blockNumber.toString());
-      await env.HEALTH_KV.put(`lastChecked:${backend}`, now);
+    if (isKvAvailable) {
+      try {
+        await env.HEALTH_KV.put(`blockHeight:${backend}`, blockNumber.toString());
+        await env.HEALTH_KV.put(`lastChecked:${backend}`, now);
+      } catch (kvError) {
+        console.error(`Error updating block data: ${kvError.message}`);
+      }
     }
     
     // Node is healthy
@@ -627,7 +699,13 @@ async function checkBackendHealth(backend, env) {
   } catch (error) {
     console.error(`Health check failed for ${backend}: ${error.message}`);
     // Update last checked time even if unhealthy
-    if (env) await env.HEALTH_KV.put(`lastChecked:${backend}`, now);
+    if (isKvAvailable) {
+      try {
+        await env.HEALTH_KV.put(`lastChecked:${backend}`, now);
+      } catch (kvError) {
+        console.error(`Error updating lastChecked: ${kvError.message}`);
+      }
+    }
     return false;
   }
 }
