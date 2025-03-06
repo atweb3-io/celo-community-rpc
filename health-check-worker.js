@@ -26,12 +26,21 @@ export default {
   async scheduled(event, env, ctx) {
     console.log('Running scheduled health check');
     
+    // Clear the cached health status to force regeneration
+    await env.HEALTH_KV.delete('health_status_cache');
+    console.log('Cleared cached health status');
+    
     // Update the health status timestamp when running the scheduled check
     const newTimestamp = new Date().toISOString();
     await env.HEALTH_KV.put('health_status_timestamp', newTimestamp, { expirationTtl: 300 });
     console.log(`Updated health status timestamp to ${newTimestamp}`);
     
+    // Run the health checks
     await checkAllBackends(env);
+    
+    // Generate and cache a new health status after checks are complete
+    const results = await getHealthStatus(env);
+    console.log('Generated new health status cache');
   },
   
   // Handle HTTP requests
@@ -94,20 +103,34 @@ export default {
  * @returns {Promise<Object>} - Health status for all networks
  */
 async function getHealthStatus(env) {
-  // Try to get the cached timestamp from KV
-  let cachedTimestamp = await env.HEALTH_KV.get('health_status_timestamp');
-  
-  // If no cached timestamp exists or it's older than 5 minutes, create a new one
+  // Try to get the cached health status from KV
+  const CACHE_TTL_SECONDS = 300; // 5 minutes
+  let cachedHealthStatus = await env.HEALTH_KV.get('health_status_cache', { type: 'json' });
   const now = new Date();
-  if (!cachedTimestamp) {
-    cachedTimestamp = now.toISOString();
-    // Store the timestamp with a 5-minute TTL
-    await env.HEALTH_KV.put('health_status_timestamp', cachedTimestamp, { expirationTtl: 300 });
+  
+  // If we have a valid cached response, return it
+  if (cachedHealthStatus) {
+    // Only update the generated timestamp to show when this was served
+    return {
+      ...cachedHealthStatus,
+      cached: true,
+      served: now.toISOString()
+    };
+  }
+  
+  // If no cached response exists, generate a new one
+  console.log('No cached health status found, generating new one');
+  
+  // Get the timestamp (or create a new one)
+  let timestamp = await env.HEALTH_KV.get('health_status_timestamp');
+  if (!timestamp) {
+    timestamp = now.toISOString();
+    await env.HEALTH_KV.put('health_status_timestamp', timestamp, { expirationTtl: CACHE_TTL_SECONDS });
   }
   
   const results = {
-    timestamp: cachedTimestamp,
-    generated: now.toISOString(), // Include when this response was generated
+    timestamp: timestamp,
+    generated: now.toISOString(),
     networks: {}
   };
   
@@ -148,6 +171,9 @@ async function getHealthStatus(env) {
       }
     }
   }
+  
+  // Cache the results for 5 minutes
+  await env.HEALTH_KV.put('health_status_cache', JSON.stringify(results), { expirationTtl: CACHE_TTL_SECONDS });
   
   return results;
 }
