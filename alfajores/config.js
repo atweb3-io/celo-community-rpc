@@ -17,35 +17,60 @@ let currentBackendIndex = 0;
 async function getHealthyBackends(env) {
   const healthyBackends = [];
   
-  // First check if we have in-memory unhealthy backends
-  const inMemoryUnhealthyBackends = typeof globalThis.UNHEALTHY_BACKENDS !== 'undefined' ?
-    globalThis.UNHEALTHY_BACKENDS : new Map();
+  // Initialize in-memory unhealthy backends map if it doesn't exist
+  if (typeof globalThis.UNHEALTHY_BACKENDS === 'undefined') {
+    globalThis.UNHEALTHY_BACKENDS = new Map();
+  }
   
-  // If KV is available, check it first
+  const inMemoryUnhealthyBackends = globalThis.UNHEALTHY_BACKENDS;
+  
+  // Only log the warning if KV is not available
+  if (!env || !env.HEALTH_KV) {
+    console.warn('HEALTH_KV not available, using in-memory fallback for unhealthy backends');
+  }
+  
+  // Try to sync from KV to in-memory if KV is available
   if (env && env.HEALTH_KV) {
-    for (const backend of backendList) {
-      // Check if the backend is marked as down in KV
-      const isDown = await env.HEALTH_KV.get(`down:${backend}`);
-      if (!isDown) {
-        healthyBackends.push(backend);
-      } else {
-        console.log(`Backend ${backend} is marked as unhealthy in KV: ${isDown}`);
+    try {
+      await syncUnhealthyBackendsFromKV(env);
+    } catch (error) {
+      console.warn(`Error syncing unhealthy backends from KV: ${error.message}`);
+    }
+  }
+  
+  // Process each backend
+  for (const backend of backendList) {
+    let isUnhealthy = false;
+    
+    // First check in-memory fallback
+    const unhealthyInfo = inMemoryUnhealthyBackends.get(backend);
+    if (unhealthyInfo && (Date.now() - unhealthyInfo.timestamp) < HEALTH_CHECK_COOLDOWN_MS) {
+      console.log(`Backend ${backend} is marked as unhealthy in memory: ${unhealthyInfo.reason}`);
+      isUnhealthy = true;
+    }
+    
+    // Then check KV if available and not already marked as unhealthy
+    if (!isUnhealthy && env && env.HEALTH_KV) {
+      try {
+        const isDown = await env.HEALTH_KV.get(`down:${backend}`);
+        if (isDown) {
+          console.log(`Backend ${backend} is marked as unhealthy in KV: ${isDown}`);
+          isUnhealthy = true;
+          
+          // Update in-memory cache for consistency
+          inMemoryUnhealthyBackends.set(backend, {
+            reason: isDown,
+            timestamp: Date.now()
+          });
+        }
+      } catch (error) {
+        console.warn(`Error checking KV for backend ${backend}: ${error.message}`);
       }
     }
-  } else {
-    // If KV is not available, use in-memory fallback
-    console.warn('HEALTH_KV not available, using in-memory fallback for unhealthy backends');
     
-    for (const backend of backendList) {
-      // Check if the backend is marked as down in memory
-      const unhealthyInfo = inMemoryUnhealthyBackends.get(backend);
-      
-      // Check if the backend is unhealthy and if the cooldown period has passed
-      if (unhealthyInfo && (Date.now() - unhealthyInfo.timestamp) < HEALTH_CHECK_COOLDOWN_MS) {
-        console.log(`Backend ${backend} is marked as unhealthy in memory: ${unhealthyInfo.reason}`);
-      } else {
-        healthyBackends.push(backend);
-      }
+    // Add to healthy backends if not unhealthy
+    if (!isUnhealthy) {
+      healthyBackends.push(backend);
     }
   }
   
@@ -123,22 +148,91 @@ function useInMemoryFallback(backend, reason) {
 }
 
 /**
+ * Sync unhealthy backends from KV to in-memory cache
+ * @param {Object} env - Environment variables and bindings
+ * @returns {Promise<void>}
+ */
+async function syncUnhealthyBackendsFromKV(env) {
+  if (!env || !env.HEALTH_KV) return;
+  
+  try {
+    // Initialize in-memory cache if not exists
+    if (typeof globalThis.UNHEALTHY_BACKENDS === 'undefined') {
+      globalThis.UNHEALTHY_BACKENDS = new Map();
+    }
+    
+    // Get all keys with prefix "down:"
+    const listResult = await env.HEALTH_KV.list({ prefix: 'down:' });
+    
+    if (listResult && listResult.keys && listResult.keys.length > 0) {
+      // Update in-memory cache
+      for (const key of listResult.keys) {
+        const backend = key.name.replace('down:', '');
+        const reason = await env.HEALTH_KV.get(key.name);
+        
+        if (reason) {
+          globalThis.UNHEALTHY_BACKENDS.set(backend, {
+            reason,
+            timestamp: Date.now()
+          });
+          console.log(`Synced unhealthy backend from KV to memory: ${backend}`);
+        }
+      }
+      
+      console.log(`Synced ${listResult.keys.length} unhealthy backends from KV to memory`);
+    } else {
+      console.log('No unhealthy backends found in KV');
+    }
+  } catch (error) {
+    console.error('Error syncing unhealthy backends from KV:', error);
+    throw error; // Re-throw to allow caller to handle
+  }
+}
+
+/**
  * Purge the health endpoint cache
  * @returns {Promise<void>}
  */
 async function purgeHealthCache() {
   try {
-    // Purge the health endpoint cache
-    const cache = caches.default;
-    if (cache) {
-      const cacheUrl = new URL('https://health.celo-community.org/');
-      const cacheKey = new Request(cacheUrl.toString());
-      await cache.delete(cacheKey);
-      console.log('Purged health endpoint cache due to backend failure');
-      
-      // Generate new health status by calling the health check worker's getHealthStatus function
-      // We can't directly call that function, so we'll just let the cache be purged
-      // The next request to the health endpoint will generate a fresh response
+    // Check if we're in a Cloudflare Worker environment with cache API
+    if (typeof caches !== 'undefined' && caches.default) {
+      try {
+        // Purge the health endpoint cache
+        const cache = caches.default;
+        const cacheUrl = new URL('https://health.celo-community.org/');
+        const cacheKey = new Request(cacheUrl.toString());
+        
+        // Try to delete the cache entry
+        const deleted = await cache.delete(cacheKey);
+        
+        if (deleted) {
+          console.log('Successfully purged health endpoint cache due to backend failure');
+        } else {
+          console.log('No cache entry found to purge for health endpoint');
+        }
+        
+        // Also try to purge using fetch with cache-control: no-cache
+        try {
+          const purgeResponse = await fetch(cacheUrl.toString(), {
+            method: 'GET',
+            headers: {
+              'Cache-Control': 'no-cache',
+              'Pragma': 'no-cache'
+            }
+          });
+          
+          if (purgeResponse.ok) {
+            console.log('Sent cache-busting request to health endpoint');
+          }
+        } catch (fetchError) {
+          console.warn('Error sending cache-busting request:', fetchError.message);
+        }
+      } catch (cacheError) {
+        console.warn('Error accessing Cloudflare cache:', cacheError.message);
+      }
+    } else {
+      console.warn('Cloudflare cache API not available, skipping cache purge');
     }
   } catch (error) {
     // Non-critical error, just log it
