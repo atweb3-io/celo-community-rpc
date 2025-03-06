@@ -48,9 +48,14 @@ async function getHealthyBackends(env) {
  */
 async function markBackendUnhealthy(env, backend, reason) {
   try {
+    // Always log the unhealthy backend regardless of KV availability
+    console.error(`Backend ${backend} is unhealthy: ${reason}`);
+    
     // Check if env is available
     if (!env) {
       console.warn(`Cannot mark backend ${backend} as unhealthy: env not available`);
+      useInMemoryFallback(backend, reason);
+      await purgeHealthCache();
       return;
     }
     
@@ -63,55 +68,45 @@ async function markBackendUnhealthy(env, backend, reason) {
       } catch (kvError) {
         // If there's an error accessing HEALTH_KV, log it and use the in-memory fallback
         console.warn(`Cannot mark backend ${backend} as unhealthy in KV: ${kvError.message}`);
-        console.error(`Backend ${backend} is unhealthy: ${reason}`);
-        
-        // Use in-memory fallback
         useInMemoryFallback(backend, reason);
       }
     } else {
       // HEALTH_KV is not defined, log it and use the in-memory fallback
       console.warn(`Cannot mark backend ${backend} as unhealthy: HEALTH_KV not available`);
-      console.error(`Backend ${backend} is unhealthy: ${reason}`);
-      
-      // Use in-memory fallback
       useInMemoryFallback(backend, reason);
     }
     
-    // Helper function to store unhealthy backend in memory
-    function useInMemoryFallback(backend, reason) {
-      // Store in memory as a fallback (will be lost on worker restart)
-      if (typeof globalThis.UNHEALTHY_BACKENDS === 'undefined') {
-        globalThis.UNHEALTHY_BACKENDS = new Map();
-      }
-      
-      globalThis.UNHEALTHY_BACKENDS.set(backend, {
-        reason,
-        timestamp: Date.now()
-      });
-    }
-    
-    // Purge the health endpoint cache and update health status
-    try {
-      // Purge the health endpoint cache
-      const cache = caches.default;
-      if (cache) {
-        const cacheUrl = new URL('https://health.celo-community.org/');
-        const cacheKey = new Request(cacheUrl.toString());
-        await cache.delete(cacheKey);
-        console.log('Purged health endpoint cache due to backend failure');
-      }
-    } catch (cacheError) {
-      // Non-critical error, just log it
-      console.error('Error purging health status cache:', cacheError);
-    }
+    // Purge the health endpoint cache after marking the backend as unhealthy
+    await purgeHealthCache();
   } catch (error) {
     console.error(`Error in markBackendUnhealthy for ${backend}: ${error.message}`);
-    
-    // Ensure we still log the unhealthy backend even if there's an error
-    console.error(`Backend ${backend} is unhealthy (not marked in KV): ${reason}`);
+    useInMemoryFallback(backend, reason);
+    await purgeHealthCache();
+  }
+}
+
+/**
+ * Store unhealthy backend in memory
+ * @param {string} backend - The backend URL to mark as unhealthy
+ * @param {string} reason - The reason for marking the backend as unhealthy
+ */
+function useInMemoryFallback(backend, reason) {
+  // Store in memory as a fallback (will be lost on worker restart)
+  if (typeof globalThis.UNHEALTHY_BACKENDS === 'undefined') {
+    globalThis.UNHEALTHY_BACKENDS = new Map();
   }
   
-  // Purge the health endpoint cache and update health status
+  globalThis.UNHEALTHY_BACKENDS.set(backend, {
+    reason,
+    timestamp: Date.now()
+  });
+}
+
+/**
+ * Purge the health endpoint cache
+ * @returns {Promise<void>}
+ */
+async function purgeHealthCache() {
   try {
     // Purge the health endpoint cache
     const cache = caches.default;
