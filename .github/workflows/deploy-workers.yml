@@ -22,10 +22,17 @@ jobs:
         include:
           - network: mainnet
             route: rpc.celo-community.org/*
+            # Optional: Use separate KV namespaces for each network
+            # kv_id: ${{ secrets.MAINNET_HEALTH_KV_ID }}
+            # kv_preview_id: ${{ secrets.MAINNET_HEALTH_KV_PREVIEW_ID }}
           - network: baklava
             route: baklava-rpc.celo-community.org/*
+            # kv_id: ${{ secrets.BAKLAVA_HEALTH_KV_ID }}
+            # kv_preview_id: ${{ secrets.BAKLAVA_HEALTH_KV_PREVIEW_ID }}
           - network: alfajores
             route: alfajores-rpc.celo-community.org/*
+            # kv_id: ${{ secrets.ALFAJORES_HEALTH_KV_ID }}
+            # kv_preview_id: ${{ secrets.ALFAJORES_HEALTH_KV_PREVIEW_ID }}
     
     steps:
       - name: Checkout code
@@ -39,57 +46,14 @@ jobs:
       - name: Install dependencies
         run: npm install -g wrangler
 
-      - name: Verify KV Namespace Setup
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: |
-          # Check if the HEALTH_KV namespace exists
-          echo "Checking if HEALTH_KV namespace exists..."
-          KV_LIST=$(wrangler kv:namespace list)
-          
-          # Extract the namespace ID if it exists
-          # Parse the output which is in the format: id = "xxx" | title = "yyy"
-          HEALTH_KV_ID=$(echo "$KV_LIST" | grep "celo-health-checks" | awk -F'id = ' '{print $2}' | awk -F' ' '{print $1}' | tr -d '"')
-          HEALTH_KV_PREVIEW_ID=$(echo "$KV_LIST" | grep "celo-health-checks-preview" | awk -F'id = ' '{print $2}' | awk -F' ' '{print $1}' | tr -d '"')
-          
-          # Create the namespace if it doesn't exist
-          if [ -z "$HEALTH_KV_ID" ]; then
-            echo "Creating HEALTH_KV namespace..."
-            KV_CREATE=$(wrangler kv:namespace create "celo-health-checks")
-            HEALTH_KV_ID=$(echo "$KV_CREATE" | grep -o 'id = "[^"]*"' | awk -F'"' '{print $2}')
-            echo "Created HEALTH_KV namespace with ID: $HEALTH_KV_ID"
-          else
-            echo "Found existing HEALTH_KV namespace with ID: $HEALTH_KV_ID"
-          fi
-          
-          # Create the preview namespace if it doesn't exist
-          if [ -z "$HEALTH_KV_PREVIEW_ID" ]; then
-            echo "Creating HEALTH_KV preview namespace..."
-            KV_PREVIEW_CREATE=$(wrangler kv:namespace create "celo-health-checks-preview")
-            HEALTH_KV_PREVIEW_ID=$(echo "$KV_PREVIEW_CREATE" | grep -o 'id = "[^"]*"' | awk -F'"' '{print $2}')
-            echo "Created HEALTH_KV preview namespace with ID: $HEALTH_KV_PREVIEW_ID"
-          else
-            echo "Found existing HEALTH_KV preview namespace with ID: $HEALTH_KV_PREVIEW_ID"
-          fi
-          
-          # Export the namespace IDs for use in subsequent steps
-          echo "HEALTH_KV_ID=$HEALTH_KV_ID" >> $GITHUB_ENV
-          echo "HEALTH_KV_PREVIEW_ID=$HEALTH_KV_PREVIEW_ID" >> $GITHUB_ENV
-          
-          # Save the namespace IDs to a file for reference
-          echo "HEALTH_KV_ID=$HEALTH_KV_ID" > kv-namespace-ids.txt
-          echo "HEALTH_KV_PREVIEW_ID=$HEALTH_KV_PREVIEW_ID" >> kv-namespace-ids.txt
-
       - name: Deploy Worker for ${{ matrix.network }}
         working-directory: ${{ matrix.network }}
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_ZONE_ID: ${{ secrets.CLOUDFLARE_ZONE_ID }}
-          # Use the KV namespace IDs from the previous step
-          HEALTH_KV_ID: ${{ env.HEALTH_KV_ID }}
-          HEALTH_KV_PREVIEW_ID: ${{ env.HEALTH_KV_PREVIEW_ID }}
+          HEALTH_KV_ID: ${{ secrets.HEALTH_KV_ID }}
+          HEALTH_KV_PREVIEW_ID: ${{ secrets.HEALTH_KV_PREVIEW_ID }}
         run: |
           # Replace environment variables in wrangler.toml
           sed -i "s/\$CLOUDFLARE_ACCOUNT_ID/${{ secrets.CLOUDFLARE_ACCOUNT_ID }}/g" wrangler.toml
@@ -97,7 +61,6 @@ jobs:
           sed -i "s|route = \".*\"|route = \"${{ matrix.route }}\"|g" wrangler.toml
           sed -i "s/\$HEALTH_KV_ID/$HEALTH_KV_ID/g" wrangler.toml
           sed -i "s/\$HEALTH_KV_PREVIEW_ID/$HEALTH_KV_PREVIEW_ID/g" wrangler.toml
-          
           # Verify that the KV namespace binding is present in wrangler.toml
           if ! grep -q "binding = \"HEALTH_KV\"" wrangler.toml; then
             echo "Adding HEALTH_KV binding to wrangler.toml..."
