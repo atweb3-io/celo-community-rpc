@@ -1,3 +1,7 @@
 {
+  "https://r1.celo.grassecon.org": "0xce55dda5933D94482001012504C56762103190a1",
+  "https://r2.celo.grassecon.org": "0x27bDc9eaf4BE92861ecd7644Cc9CD584767F5555",
+  "https://r3.celo.grassecon.org": "0x809B6Ce0091AD518Bfaab2f545d5633899F525aE",
+  "https://r4.celo.grassecon.org": "0xe1469Ae505A9DB5F716eb1ddd1055EEDCa537464",
   "https://celo-rpc-01.stakely.io/": "0x54D0D2E0F1cC1D7fb21e2350F14d79A1237605D1"
 }
