@@ -27,5 +27,8 @@ export const backendList = [
   'https://celo-rpc-01.stakely.io/',
   'https://rpc-v3.validator.capital',
   'https://rpc-v2.validator.capital',
-  'https://rpc-v1.validator.capital'
+  'https://rpc-v1.validator.capital',
+  'https://dsrv-validator-01.celo.dsrvlabs.net',
+  'https://dsrv-validator-02.celo.dsrvlabs.net',
+  'https://nonce-validator-01.celo.dsrvlabs.net'
 ];
