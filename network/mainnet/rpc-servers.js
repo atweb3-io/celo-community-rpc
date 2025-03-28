@@ -5,7 +5,6 @@ export const servers = [
   'https://forno.celo.org',
   'https://celo.newroad.network',
   'https://celo.chainvibes.nl',
-  'https://mainnet-rpc-1.happycelo.com/',
   'https://celo-rpc.stakecito.com',
   'https://celo-rpc-mainnet-1.swiftstaking.com',
   'https://celo-rpc-1.ryabina.io',
@@ -26,7 +25,6 @@ export const servers = [
   'https://celo-rpc-01.stakely.io/',
   'https://rpc-v3.validator.capital',
   'https://rpc-v2.validator.capital',
-  'https://rpc-v1.validator.capital',
   'https://rpc-celo3.wotrust.us',
   'https://rpc-celo4.wotrust.us',
   'https://rpc-celo5.wotrust.us',
@@ -68,5 +66,11 @@ export const servers = [
   'https://celo-rpc-2.thepassivetrust.com',
   'https://celo-rpc1.making.cash',
   'https://rpc2.epv.lol',
-  'https://rpc1.epv.lol'
+  'https://rpc1.epv.lol',
+  'https://celo-mainnet-rpcaas-1.blockdaemon.tech',
+  'https://celo-rpc-v0.zanshindojo.org',
+  'https://celo-rpc-v1.zanshindojo.org',
+  'https://celo-rpc.ministryofblocks.com',
+  'https://mainnet-rpc-2.happycelo.com/',
+  'https://cr1.plusv.io'
 ];
