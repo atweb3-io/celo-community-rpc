@@ -72,5 +72,15 @@ export const backendList = [
   'https://celo-rpc-v1.zanshindojo.org',
   'https://celo-rpc.ministryofblocks.com',
   'https://mainnet-rpc-2.happycelo.com/',
-  'https://cr1.plusv.io'
+  'https://cr1.plusv.io',
+  'https://celol2.lb.us-east-2.prod.stake.capital:9993',
+  'https://rpc-v1.validator.capital',
+  'https://celo-mainnet-rpcaas-2.blockdaemon.tech',
+  'https://celo-rpc-1.impactmarket.com',
+  'https://celo-rpc-2.impactmarket.com',
+  'https://celo-rpc-4.impactmarket.com',
+  'https://celo-rpc-3.impactmarket.com',
+  'https://celo02.cloud9ers.com',
+  'https://mainnet-rpc-1.happycelo.com/',
+  'https://rpc.thecelo.com'
 ];
