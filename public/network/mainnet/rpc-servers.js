@@ -86,5 +86,11 @@ export const servers = [
   'https://validator-1.clabs-validators.celo-testnet.org',
   'https://dedatalabs-rpc4.xyz/',
   'https://dedatalabs-rpc1.xyz/',
-  'https://dedatalabs-rpc2.xyz/'
+  'https://dedatalabs-rpc2.xyz/',
+  'https://celo-mainnet-rpc--anchorage-1.staking.production.figment.io',
+  'https://celo-mainnet-rpc--anchorage-2.staking.production.figment.io',
+  'https://celo-mainnet-rpc--anchorage-3.staking.production.figment.io',
+  'https://celo-mainnet-rpc--anchorage-4.staking.production.figment.io',
+  'https://celo-mainnet-rpc--anchorage-5.staking.production.figment.io',
+  'https://validator-0.clabs-validators.celo-testnet.org'
 ];
