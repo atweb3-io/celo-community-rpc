@@ -79,10 +79,6 @@ export const servers = [
   'https://celo02.cloud9ers.com',
   'https://mainnet-rpc-1.happycelo.com/',
   'https://rpc.thecelo.com',
-  'https://celo-rpc-rey.mantalabs.com',
-  'https://celo-rpc-ronald.mantalabs.com',
-  'https://celo-rpc-rose.mantalabs.com',
-  'https://celo-rpc-reginald.mantalabs.com',
   'https://validator-1.clabs-validators.celo-testnet.org',
   'https://dedatalabs-rpc4.xyz/',
   'https://dedatalabs-rpc1.xyz/',
@@ -92,5 +88,9 @@ export const servers = [
   'https://celo-mainnet-rpc--anchorage-3.staking.production.figment.io',
   'https://celo-mainnet-rpc--anchorage-4.staking.production.figment.io',
   'https://celo-mainnet-rpc--anchorage-5.staking.production.figment.io',
-  'https://validator-0.clabs-validators.celo-testnet.org'
+  'https://validator-0.clabs-validators.celo-testnet.org',
+  'https://celo-rpc-1.textilecredit.com',
+  'https://celo-rpc-2.textilecredit.com',
+  'https://rpc-0.tech-blockchain-services.xyz',
+  'https://rpc-1.tech-blockchain-services.xyz'
 ];
