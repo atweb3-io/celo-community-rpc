@@ -1,8 +1,4 @@
 {
-  "https://celo-rpc-rey.mantalabs.com": "0xc627459BFc70cD7B6719d5b8030C3beA7825CA7e",
-  "https://celo-rpc-ronald.mantalabs.com": "0x6e5a2624Ae582c96c5A12Eb168afA532a85AE829",
-  "https://celo-rpc-rose.mantalabs.com": "0xaC6492D439b3b812e822d1e975338f48bDD0B1f2",
-  "https://celo-rpc-reginald.mantalabs.com": "0x7328B986cF7e7a1Baf62E257aAFa66abdA4109Ce",
   "https://r1.celo.grassecon.org": "0xce55dda5933D94482001012504C56762103190a1",
   "https://r2.celo.grassecon.org": "0x27bDc9eaf4BE92861ecd7644Cc9CD584767F5555",
   "https://r3.celo.grassecon.org": "0x809B6Ce0091AD518Bfaab2f545d5633899F525aE",
@@ -89,8 +85,12 @@
   "https://celo-rpc-1.thepassivetrust.com": "0xea11740878D662A4d4e9b9f0c7C04378ACf1E869",
   "https://celo-rpc-2.thepassivetrust.com": "0x3a8431fa7810dE768c6468Dd0dB83E695c3BaEC9",
   "https://rpc.thecelo.com": "0x997490F08B9b99dB00657e2B1BbEc180Cf804A27",
+  "https://celo-rpc-1.textilecredit.com": "0x88551845c76056518E16935e85C9b4b57813cA9E",
+  "https://celo-rpc-2.textilecredit.com": "0x8204B94EDCdd3130E709515F690eC99f623aE6aA",
   "https://celo.chainvibes.nl": "0x00A9e8869e40e038D0FaE63D825a732e6FfF48d1",
   "https://celo-rpc1.making.cash": "0x28B5f40C3f5883021408Ce79F20FCf282E873236",
+  "https://rpc-0.tech-blockchain-services.xyz": "0x4E3c453b4897451E6f84C6869f533cA04250259a",
+  "https://rpc-1.tech-blockchain-services.xyz": "0xb0eB075123775637136D5F9bAd4f0774F64C4a92",
   "https://rpc2.epv.lol": "0x9F49E9Ec7199455Dda0B116785470fbAfb4C0B50",
   "https://cr1.plusv.io": "0x52949f71f71f6E5A6EfCab0f16C8fF6711A84780"
 }
