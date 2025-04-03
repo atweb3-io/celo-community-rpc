@@ -92,5 +92,7 @@ export const backendList = [
   'https://celo-rpc-1.textilecredit.com',
   'https://celo-rpc-2.textilecredit.com',
   'https://rpc-0.tech-blockchain-services.xyz',
-  'https://rpc-1.tech-blockchain-services.xyz'
+  'https://rpc-1.tech-blockchain-services.xyz',
+  'https://spectrum-01.simplystaking.xyz/celo-mainnet-rpc',
+  'https://validator.pro.celo.citadelzone.com'
 ];

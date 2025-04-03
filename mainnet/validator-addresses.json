@@ -82,6 +82,7 @@
   "https://celo.newroad.network": "0xFE38631E7E164D20754387F7165B9C5b427dA17B",
   "https://celo-rpc.hashkey.cloud": "0x758d1000fB3d37F88cE3BA880882898a3B0ca3aB",
   "https://nonce-validator-01.celo.dsrvlabs.net": "0x1819b44553Fa39A983D1c92238E1F18AeE30eF51",
+  "https://spectrum-01.simplystaking.xyz/celo-mainnet-rpc": "0xc2023E0D13F53d181f29B99D829CD75628337D15",
   "https://celo-rpc-1.thepassivetrust.com": "0xea11740878D662A4d4e9b9f0c7C04378ACf1E869",
   "https://celo-rpc-2.thepassivetrust.com": "0x3a8431fa7810dE768c6468Dd0dB83E695c3BaEC9",
   "https://rpc.thecelo.com": "0x997490F08B9b99dB00657e2B1BbEc180Cf804A27",
@@ -92,5 +93,6 @@
   "https://rpc-0.tech-blockchain-services.xyz": "0x4E3c453b4897451E6f84C6869f533cA04250259a",
   "https://rpc-1.tech-blockchain-services.xyz": "0xb0eB075123775637136D5F9bAd4f0774F64C4a92",
   "https://rpc2.epv.lol": "0x9F49E9Ec7199455Dda0B116785470fbAfb4C0B50",
+  "https://validator.pro.celo.citadelzone.com": "0x5658C2D13105C429ccdcA7FA57ef0C54B26F19Ad",
   "https://cr1.plusv.io": "0x52949f71f71f6E5A6EfCab0f16C8fF6711A84780"
 }

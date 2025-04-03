@@ -11,7 +11,6 @@ export const servers = [
   'https://baklava.staking.fund',
   'https://celo-rpc-01.baklava.dsrvlabs.dev',
   'http://rpcb.usopp.club/',
-  'https://rpc.celo.testnet.tessellated.io',
   'https://baklava-rpc.validator.capital',
   'https://celo-testnet-rpc-01.stakely.io/',
   'https://validator-0.baklava.celo-testnet.org',
