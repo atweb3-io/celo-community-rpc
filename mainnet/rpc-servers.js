@@ -94,5 +94,10 @@ export const backendList = [
   'https://rpc-0.tech-blockchain-services.xyz',
   'https://rpc-1.tech-blockchain-services.xyz',
   'https://spectrum-01.simplystaking.xyz/celo-mainnet-rpc',
-  'https://validator.pro.celo.citadelzone.com'
+  'https://validator.pro.celo.citadelzone.com',
+  'https://rpc.ocean-view.mainnet.tessellated.io',
+  'https://rpc.ingleside.mainnet.tessellated.io',
+  'https://rpc.taraval.mainnet.tessellated.io',
+  'https://celo-rpc.easy2stake.com',
+  'https://rpc.chainstaker.com/celo'
 ];
