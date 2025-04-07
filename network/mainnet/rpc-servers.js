@@ -99,5 +99,10 @@ export const servers = [
   'https://rpc.ingleside.mainnet.tessellated.io',
   'https://rpc.taraval.mainnet.tessellated.io',
   'https://celo-rpc.easy2stake.com',
-  'https://rpc.chainstaker.com/celo'
+  'https://rpc.chainstaker.com/celo',
+  'https://r1-celo.grassecon.org',
+  'https://r2-celo.grassecon.org',
+  'https://r3-celo.grassecon.org',
+  'https://r4-celo.grassecon.org',
+  'https://celo-rpc1.huglester.com'
 ];
