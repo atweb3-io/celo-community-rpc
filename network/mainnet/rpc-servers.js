@@ -66,7 +66,6 @@ export const servers = [
   'https://rpc2.epv.lol',
   'https://celo-mainnet-rpcaas-1.blockdaemon.tech',
   'https://celo-rpc-v0.zanshindojo.org',
-  'https://celo-rpc-v1.zanshindojo.org',
   'https://celo-rpc.ministryofblocks.com',
   'https://mainnet-rpc-2.happycelo.com/',
   'https://cr1.plusv.io',
@@ -104,5 +103,6 @@ export const servers = [
   'https://r2-celo.grassecon.org',
   'https://r3-celo.grassecon.org',
   'https://r4-celo.grassecon.org',
-  'https://celo-rpc1.huglester.com'
+  'https://celo-rpc1.huglester.com',
+  'https://celo-rpc.keyko.rocks'
 ];
