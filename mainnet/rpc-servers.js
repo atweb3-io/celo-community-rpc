@@ -104,5 +104,6 @@ export const backendList = [
   'https://r3-celo.grassecon.org',
   'https://r4-celo.grassecon.org',
   'https://celo-rpc1.huglester.com',
-  'https://celo-rpc.keyko.rocks'
+  'https://celo-rpc.keyko.rocks',
+  'https://celo-rpc-v1.zanshindojo.org'
 ];
