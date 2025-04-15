@@ -72,11 +72,6 @@ export const backendList = [
   'https://celol2.lb.us-east-2.prod.stake.capital:9993',
   'https://rpc-v1.validator.capital',
   'https://celo-mainnet-rpcaas-2.blockdaemon.tech',
-  'https://celo-rpc-1.impactmarket.com',
-  'https://celo-rpc-2.impactmarket.com',
-  'https://celo-rpc-4.impactmarket.com',
-  'https://celo02.cloud9ers.com',
-  'https://mainnet-rpc-1.happycelo.com/',
   'https://rpc.thecelo.com',
   'https://validator-1.clabs-validators.celo-testnet.org',
   'https://dedatalabs-rpc4.xyz/',
@@ -104,5 +99,11 @@ export const backendList = [
   'https://r3-celo.grassecon.org',
   'https://r4-celo.grassecon.org',
   'https://celo-rpc1.huglester.com',
-  'https://celo-rpc.keyko.rocks'
+  'https://celo-rpc.keyko.rocks',
+  'https://celo-rpc-rey.mantalabs.com',
+  'https://celo-rpc-ronald.mantalabs.com',
+  'https://celo-rpc-rose.mantalabs.com',
+  'https://celo-rpc-reginald.mantalabs.com',
+  'https://r5-celo.grassecon.org',
+  'https://celo-rpc-v1.zanshindojo.org'
 ];
