@@ -104,5 +104,11 @@ export const servers = [
   'https://r3-celo.grassecon.org',
   'https://r4-celo.grassecon.org',
   'https://celo-rpc1.huglester.com',
-  'https://celo-rpc.keyko.rocks'
+  'https://celo-rpc.keyko.rocks',
+  'https://celo-rpc-rey.mantalabs.com',
+  'https://celo-rpc-ronald.mantalabs.com',
+  'https://celo-rpc-rose.mantalabs.com',
+  'https://celo-rpc-reginald.mantalabs.com',
+  'https://r5-celo.grassecon.org',
+  'https://celo-rpc-v1.zanshindojo.org'
 ];
