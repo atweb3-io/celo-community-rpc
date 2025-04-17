@@ -14,6 +14,5 @@ export const backendList = [
   'https://baklava-rpc.validator.capital',
   'https://celo-testnet-rpc-01.stakely.io/',
   'https://validator-0.baklava.celo-testnet.org',
-  'https://celo-baklava-rpc--anchorage-1.staking.production.figment.io',
-  'https://rpc.celo.testnet.tessellated.io'
+  'https://celo-baklava-rpc--anchorage-1.staking.production.figment.io'
 ];

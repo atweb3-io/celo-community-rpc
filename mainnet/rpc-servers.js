@@ -105,5 +105,10 @@ export const backendList = [
   'https://celo-rpc-rose.mantalabs.com',
   'https://celo-rpc-reginald.mantalabs.com',
   'https://r5-celo.grassecon.org',
-  'https://celo-rpc-v1.zanshindojo.org'
+  'https://celo-rpc-v1.zanshindojo.org',
+  'https://celo-rpc-1.impactmarket.com',
+  'https://celo-rpc-2.impactmarket.com',
+  'https://celo-rpc-4.impactmarket.com',
+  'https://celo02.cloud9ers.com',
+  'https://mainnet-rpc-1.happycelo.com/'
 ];
