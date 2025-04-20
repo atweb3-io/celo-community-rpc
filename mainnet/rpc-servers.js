@@ -107,5 +107,8 @@ export const backendList = [
   'https://r5-celo.grassecon.org',
   'https://celo-rpc-v1.zanshindojo.org',
   'https://celo-rpc-4.impactmarket.com',
-  'https://celo02.cloud9ers.com'
+  'https://celo02.cloud9ers.com',
+  'https://celo-rpc-1.impactmarket.com',
+  'https://celo-rpc-2.impactmarket.com',
+  'https://mainnet-rpc-1.happycelo.com/'
 ];
