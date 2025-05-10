@@ -52,7 +52,6 @@ export const backendList = [
   'https://celo-rpc-2.cyphercore.io',
   'https://miami-1.rpc.celo.atalma.io',
   'https://miami-2.rpc.celo.atalma.io',
-  'https://tokyo-1.rpc.celo.atalma.io',
   'https://rpcm4.usopp.club',
   'https://rpccelo.syncnode.ro',
   'https://celo-rpc.kytzu.com',
@@ -110,5 +109,8 @@ export const backendList = [
   'https://celo02.cloud9ers.com',
   'https://celo-rpc-1.impactmarket.com',
   'https://celo-rpc-2.impactmarket.com',
-  'https://mainnet-rpc-1.happycelo.com/'
+  'https://mainnet-rpc-1.happycelo.com/',
+  'https://rpc2.thecelo.com',
+  'http://34.168.64.34:9993',
+  'http://34.168.107.162:9993'
 ];
