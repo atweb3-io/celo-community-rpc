@@ -52,7 +52,6 @@ export const servers = [
   'https://celo-rpc-2.cyphercore.io',
   'https://miami-1.rpc.celo.atalma.io',
   'https://miami-2.rpc.celo.atalma.io',
-  'https://tokyo-1.rpc.celo.atalma.io',
   'https://rpcm4.usopp.club',
   'https://rpccelo.syncnode.ro',
   'https://celo-rpc.kytzu.com',
@@ -64,14 +63,12 @@ export const servers = [
   'https://celo-rpc-2.thepassivetrust.com',
   'https://celo-rpc1.making.cash',
   'https://rpc2.epv.lol',
-  'https://celo-mainnet-rpcaas-1.blockdaemon.tech',
   'https://celo-rpc-v0.zanshindojo.org',
   'https://celo-rpc.ministryofblocks.com',
   'https://mainnet-rpc-2.happycelo.com/',
   'https://cr1.plusv.io',
   'https://celol2.lb.us-east-2.prod.stake.capital:9993',
   'https://rpc-v1.validator.capital',
-  'https://celo-mainnet-rpcaas-2.blockdaemon.tech',
   'https://rpc.thecelo.com',
   'https://validator-1.clabs-validators.celo-testnet.org',
   'https://dedatalabs-rpc4.xyz/',
@@ -110,5 +107,8 @@ export const servers = [
   'https://celo02.cloud9ers.com',
   'https://celo-rpc-1.impactmarket.com',
   'https://celo-rpc-2.impactmarket.com',
-  'https://mainnet-rpc-1.happycelo.com/'
+  'https://mainnet-rpc-1.happycelo.com/',
+  'https://rpc2.thecelo.com',
+  'http://34.168.64.34:9993',
+  'http://34.168.107.162:9993'
 ];
