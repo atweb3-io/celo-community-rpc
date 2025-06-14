@@ -67,7 +67,6 @@ export const backendList = [
   'https://celo-rpc.ministryofblocks.com',
   'https://mainnet-rpc-2.happycelo.com/',
   'https://cr1.plusv.io',
-  'https://celol2.lb.us-east-2.prod.stake.capital:9993',
   'https://rpc-v1.validator.capital',
   'https://rpc.thecelo.com',
   'https://validator-1.clabs-validators.celo-testnet.org',
