@@ -109,8 +109,6 @@ export const backendList = [
   'https://celo-rpc-3.vibestudio.ventures',
   'https://celo-rpc-5.vibestudio.ventures',
   'https://celo-mainnet-rpc--ledger-4.staking.production.figment.io',
-  'https://celo-mainnet-rpcaas-2.blockdaemon.tech',
-  'https://celo-mainnet-rpcaas-1.blockdaemon.tech',
   'https://celo2.chainvibes.nl',
   'https://rpc.celocolombia.org'
 ];
