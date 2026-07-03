@@ -3,11 +3,5 @@
 
 export const servers = [
   'https://celo-baklava-dev.atweb3.dev',
-  'https://baklava-forno.celo-testnet.org',
-  'https://baklava.moonli.me',
-  'https://baklava-rpc.happycelo.com',
-  'https://celo-rpc-01.baklava.dsrvlabs.dev',
-  'http://rpcb.usopp.club/',
-  'https://celo-testnet-rpc-01.stakely.io/',
-  'https://validator-0.baklava.celo-testnet.org'
+  'https://baklava-forno.celo-testnet.org'
 ];
