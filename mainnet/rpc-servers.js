@@ -38,5 +38,6 @@ export const backendList = [
   'https://rpc.church.mainnet.tessellated.io',
   'https://celo-rpc-02.atweb3.dev',
   'https://celo-rpc-03.atweb3.dev',
-  'https://celo-node1.angoplus.com'
+  'https://celo-node1.angoplus.com',
+  'https://cr1.plusv.io'
 ];
