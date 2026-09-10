@@ -17,7 +17,6 @@ export const backendList = [
   'https://celo-rpc-01.atweb3.dev',
   'https://celo-rpc.kytzu.com',
   'https://celo-rpc.easy2stake.com',
-  'https://rpc.chainstaker.com/celo',
   'https://r3-celo.grassecon.org',
   'https://r4-celo.grassecon.org',
   'https://celo-rpc.keyko.rocks',
