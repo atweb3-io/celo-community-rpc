@@ -29,7 +29,6 @@ export const backendList = [
   'https://celo2.chainvibes.nl',
   'https://rpc.celocolombia.org',
   'https://celo-mainnet-rpc--ledger-5.staking.production.figment.io',
-  'https://celo3.chainvibes.nl',
   'https://celo-rpc-02.atweb3.dev',
   'https://celo-rpc-03.atweb3.dev',
   'https://celo-node1.angoplus.com',
